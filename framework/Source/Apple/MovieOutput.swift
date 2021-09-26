@@ -76,10 +76,13 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
             assetWriterVideoInput.transform = transform
         }
         startTime = nil
-        sharedImageProcessingContext.runOperationSynchronously{
+        sharedImageProcessingContext.runOperationSynchronously {
             self.isRecording = self.assetWriter.startWriting()
             
 #if os(iOS)
+            if self.assetWriterPixelBufferInput.pixelBufferPool == nil {
+                return
+            }
             CVPixelBufferPoolCreatePixelBuffer(nil, self.assetWriterPixelBufferInput.pixelBufferPool!, &self.pixelBuffer)
             
             /* AVAssetWriter will use BT.601 conversion matrix for RGB to YCbCr conversion
@@ -163,8 +166,10 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
         
         renderIntoPixelBuffer(pixelBuffer!, framebuffer:framebuffer)
         
-        if (!assetWriterPixelBufferInput.append(pixelBuffer!, withPresentationTime:frameTime)) {
-            debugPrint("Problem appending pixel buffer at time: \(frameTime)")
+        if assetWriterPixelBufferInput.assetWriterInput.isReadyForMoreMediaData {
+            if (!assetWriterPixelBufferInput.append(pixelBuffer!, withPresentationTime:frameTime)) {
+                debugPrint("Problem appending pixel buffer at time: \(frameTime)")
+            }
         }
         
         CVPixelBufferUnlockBaseAddress(pixelBuffer!, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))

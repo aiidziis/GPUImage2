@@ -4,6 +4,8 @@ public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
     
+    var completionCallback: (() -> Void)? = nil
+    
     let yuvConversionShader:ShaderProgram
     let asset:AVAsset
     let assetReader:AVAssetReader
@@ -42,7 +44,8 @@ public class MovieInput: ImageSource {
     // MARK: -
     // MARK: Playback control
 
-    public func start() {
+    public func start( completionCallback callback: (() -> Void)? = nil) {
+        self.completionCallback = callback
         asset.loadValuesAsynchronously(forKeys:["tracks"], completionHandler:{
             standardProcessingQueue.async(execute: {
                 guard (self.asset.statusOfValue(forKey: "tracks", error:nil) == .loaded) else { return }
@@ -83,7 +86,10 @@ public class MovieInput: ImageSource {
     }
     
     func endProcessing() {
-        
+        if let callback = self.completionCallback {
+            callback()
+            self.completionCallback = nil
+        }
     }
     
     // MARK: -
@@ -103,6 +109,20 @@ public class MovieInput: ImageSource {
                     
                     if (frameTimeDifference > actualTimeDifference) {
                         usleep(UInt32(round(1000000.0 * (frameTimeDifference - actualTimeDifference))))
+                    }
+                    
+                    previousFrameTime = currentSampleTime
+                    previousActualFrameTime = CFAbsoluteTimeGetCurrent()
+                } else {
+                    let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
+                    let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
+                    let currentActualTime = CFAbsoluteTimeGetCurrent()
+                    
+                    let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
+                    let actualTimeDifference = currentActualTime - previousActualFrameTime
+                    
+                    if (frameTimeDifference > actualTimeDifference) {
+                        usleep(UInt32(round(1000.0 * (frameTimeDifference - actualTimeDifference))))
                     }
                     
                     previousFrameTime = currentSampleTime
