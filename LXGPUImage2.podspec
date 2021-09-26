@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
     s.name     = 'LXGPUImage2'
     s.module_name = 'GPUImage'
-    s.version  = '5.0.1'
+    s.version  = '5.0.2'
     s.license  = 'BSD'
     s.summary  = 'An open source iOS framework for GPU-based image and video processing.'
     s.homepage = 'https://github.com/GottaYotta/GPUImage2'
@@ -18,5 +18,5 @@ Pod::Spec.new do |s|
     s.ios.deployment_target = '9.0'
     s.ios.exclude_files = 'framework/Source/Mac', 'framework/Source/Linux', 'framework/Source/Operations/Shaders/ConvertedShaders_GL.swift'
     s.frameworks   = ['OpenGLES', 'CoreMedia', 'QuartzCore', 'AVFoundation']
-    s.swift_version = '3.0'
+    s.swift_version = '4.0'
 end
