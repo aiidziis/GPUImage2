@@ -1,7 +1,7 @@
 {
   "name": "LXGPUImage2",
   "module_name": "GPUImage",
-  "version": "5.0.1",
+  "version": "5.0.2",
   "license": "BSD",
   "summary": "An open source iOS framework for GPU-based image and video processing.",
   "homepage": "https://github.com/GottaYotta/GPUImage2",
@@ -10,7 +10,7 @@
   },
   "source": {
     "git": "https://github.com/thanhminhkma/GPUImage2.git",
-    "tag": "5.0.1"
+    "tag": "5.0.2"
   },
   "source_files": "framework/Source/**/*.{swift,h,m}",
   "resources": "framework/Source/Operations/Shaders/*.{fsh}",
@@ -36,6 +36,6 @@
     "QuartzCore",
     "AVFoundation"
   ],
-  "swift_versions": "3.0",
-  "swift_version": "3.0"
+  "swift_versions": "4.0",
+  "swift_version": "4.0"
 }

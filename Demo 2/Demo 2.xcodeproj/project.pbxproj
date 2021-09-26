@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 50;
+	objectVersion = 51;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,6 +14,7 @@
 		F048B7BA27001F1D00260B42 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F048B7B827001F1D00260B42 /* Main.storyboard */; };
 		F048B7BC27001F1E00260B42 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F048B7BB27001F1E00260B42 /* Assets.xcassets */; };
 		F048B7BF27001F1E00260B42 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F048B7BD27001F1E00260B42 /* LaunchScreen.storyboard */; };
+		F048B7C82700218300260B42 /* sample_iPod.m4v in Resources */ = {isa = PBXBuildFile; fileRef = F048B7C72700218300260B42 /* sample_iPod.m4v */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,6 +29,7 @@
 		F048B7BB27001F1E00260B42 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F048B7BE27001F1E00260B42 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		F048B7C027001F1E00260B42 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F048B7C72700218300260B42 /* sample_iPod.m4v */ = {isa = PBXFileReference; lastKnownFileType = file; name = sample_iPod.m4v; path = ../../examples/SharedAssets/sample_iPod.m4v; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +73,7 @@
 		F048B7B127001F1D00260B42 /* Demo 2 */ = {
 			isa = PBXGroup;
 			children = (
+				F048B7C72700218300260B42 /* sample_iPod.m4v */,
 				F048B7B227001F1D00260B42 /* AppDelegate.swift */,
 				F048B7B427001F1D00260B42 /* SceneDelegate.swift */,
 				F048B7B627001F1D00260B42 /* ViewController.swift */,
@@ -88,7 +91,6 @@
 				9FD9ECE9DA13A2717DEA8EE1 /* Pods-Demo 2.debug.xcconfig */,
 				AA2E252F5049BFFEB5D10C06 /* Pods-Demo 2.release.xcconfig */,
 			);
-			name = Pods;
 			path = Pods;
 			sourceTree = "<group>";
 		};
@@ -152,6 +154,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F048B7BF27001F1E00260B42 /* LaunchScreen.storyboard in Resources */,
+				F048B7C82700218300260B42 /* sample_iPod.m4v in Resources */,
 				F048B7BC27001F1E00260B42 /* Assets.xcassets in Resources */,
 				F048B7BA27001F1D00260B42 /* Main.storyboard in Resources */,
 			);

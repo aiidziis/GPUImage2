@@ -1910,7 +1910,7 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
-		6F356C165582F32514E8A6E5EA167CF7 /* Debug */ = {
+		63F8B48CDC55F15D876FB005D95FDEEB /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 4A135DC032CC7AA15B39E3509D3A1F1A /* LXGPUImage2.debug.xcconfig */;
 			buildSettings = {
@@ -1937,14 +1937,14 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
 			name = Debug;
 		};
-		85688892B0B080748B902AB86354E4C2 /* Release */ = {
+		AFB343E759A57F80002D6F584F572CCA /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = FBD7FD19F729A8D7BC6741354C954AA6 /* LXGPUImage2.release.xcconfig */;
 			buildSettings = {
@@ -1971,7 +1971,7 @@
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) ";
-				SWIFT_VERSION = 3.0;
+				SWIFT_VERSION = 4.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -2197,8 +2197,8 @@
 		B2C6A5FCAACDFDD78F423ECB7F000E90 /* Build configuration list for PBXNativeTarget "LXGPUImage2" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				6F356C165582F32514E8A6E5EA167CF7 /* Debug */,
-				85688892B0B080748B902AB86354E4C2 /* Release */,
+				63F8B48CDC55F15D876FB005D95FDEEB /* Debug */,
+				AFB343E759A57F80002D6F584F572CCA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
