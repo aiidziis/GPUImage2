@@ -20,3 +20,4 @@ Pod::Spec.new do |s|
     s.frameworks   = ['OpenGLES', 'CoreMedia', 'QuartzCore', 'AVFoundation']
     s.swift_version = '4.0'
 end
+
