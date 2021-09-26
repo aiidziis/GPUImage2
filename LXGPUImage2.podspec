@@ -15,7 +15,7 @@ Pod::Spec.new do |s|
                    'OTHER_SWIFT_FLAGS' => "$(inherited) -DGLES",
                    'VALIDATE_WORKSPACE_SKIPPED_SDK_FRAMEWORKS' => "OpenGLES" }
 
-    s.ios.deployment_target = '10.0'
+    s.ios.deployment_target = '9.0'
     s.ios.exclude_files = 'framework/Source/Mac', 'framework/Source/Linux', 'framework/Source/Operations/Shaders/ConvertedShaders_GL.swift'
     s.frameworks   = ['OpenGLES', 'CoreMedia', 'QuartzCore', 'AVFoundation']
     s.swift_version = '4.0'
