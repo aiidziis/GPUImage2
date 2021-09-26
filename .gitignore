@@ -27,6 +27,7 @@ Package.resolved
 *.xcworkspace
 xcuserdata
 .vscode
+Demo 2/Pods
 
 # Documentation
 documentation/*

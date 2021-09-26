@@ -6,5 +6,5 @@ target 'Demo 2' do
   use_frameworks!
 
   # Pods for Demo 2
- pod 'LXGPUImage2', :path => '../'
+ pod 'LXGPUImage2'
 end
