@@ -17,13 +17,16 @@ public class MovieInput: ImageSource {
 
     var numberOfFramesCaptured = 0
     var totalFrameTimeDuringCapture:Double = 0.0
+    
+    var startSecond: Double = 0
 
     // TODO: Add movie reader synchronization
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
-    public init(asset:AVAsset, playAtActualSpeed:Bool = false, loop:Bool = false) throws {
+    public init(asset:AVAsset, playAtActualSpeed:Bool = false, loop:Bool = false, startSecond: Double = 0) throws {
         self.asset = asset
         self.playAtActualSpeed = playAtActualSpeed
         self.loop = loop
+        self.startSecond = startSecond
         self.yuvConversionShader = crashOnShaderCompileFailure("MovieInput"){try sharedImageProcessingContext.programForVertexShader(defaultVertexShaderForInputs(2), fragmentShader:YUVConversionFullRangeFragmentShader)}
         
         assetReader = try AVAssetReader(asset:self.asset)
@@ -35,10 +38,10 @@ public class MovieInput: ImageSource {
         // TODO: Audio here
     }
 
-    public convenience init(url:URL, playAtActualSpeed:Bool = false, loop:Bool = false) throws {
+    public convenience init(url:URL, playAtActualSpeed:Bool = false, loop:Bool = false, startSecond: Double = 0) throws {
         let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
         let inputAsset = AVURLAsset(url:url, options:inputOptions)
-        try self.init(asset:inputAsset, playAtActualSpeed:playAtActualSpeed, loop:loop)
+        try self.init(asset:inputAsset, playAtActualSpeed:playAtActualSpeed, loop:loop, startSecond: startSecond)
     }
 
     // MARK: -
@@ -95,26 +98,32 @@ public class MovieInput: ImageSource {
     // MARK: -
     // MARK: Internal processing functions
     
+    func checkValidTime(time: CMTime) -> Bool {
+        return time.seconds >= self.startSecond
+    }
+    
     func readNextVideoFrame(from videoTrackOutput:AVAssetReaderOutput) {
         if ((assetReader.status == .reading) && !videoEncodingIsFinished) {
             if let sampleBuffer = videoTrackOutput.copyNextSampleBuffer() {
+                
+                let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
+                
                 if (playAtActualSpeed) {
                     // Do this outside of the video processing queue to not slow that down while waiting
-                    let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
+                    
                     let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
                     let currentActualTime = CFAbsoluteTimeGetCurrent()
                     
                     let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
                     let actualTimeDifference = currentActualTime - previousActualFrameTime
                     
-                    if (frameTimeDifference > actualTimeDifference) {
+                    if (frameTimeDifference > actualTimeDifference) && checkValidTime(time: currentSampleTime) {
                         usleep(UInt32(round(1000000.0 * (frameTimeDifference - actualTimeDifference))))
                     }
                     
                     previousFrameTime = currentSampleTime
                     previousActualFrameTime = CFAbsoluteTimeGetCurrent()
                 } else {
-                    let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
                     let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
                     let currentActualTime = CFAbsoluteTimeGetCurrent()
                     
@@ -130,7 +139,10 @@ public class MovieInput: ImageSource {
                 }
 
                 sharedImageProcessingContext.runOperationSynchronously{
-                    self.process(movieFrame:sampleBuffer)
+                    if checkValidTime(time: currentSampleTime) {
+                        self.process(movieFrame:sampleBuffer)
+                    }
+                    
                     CMSampleBufferInvalidate(sampleBuffer)
                 }
             } else {
@@ -142,11 +154,6 @@ public class MovieInput: ImageSource {
                 }
             }
         }
-//        else if (synchronizedMovieWriter != nil) {
-//            if (assetReader.status == .Completed) {
-//                self.endProcessing()
-//            }
-//        }
 
     }
     

@@ -15,7 +15,7 @@ class ViewController: UIViewController {
         let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
         
         do {
-            movie = try MovieInput(url:movieURL, playAtActualSpeed:true)
+            movie = try MovieInput(url:movieURL, playAtActualSpeed:true, loop: false, startSecond: 30)
             filter = Pixellate()
             movie --> filter --> renderView
             movie.runBenchmark = true
