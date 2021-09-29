@@ -5,6 +5,7 @@ public class MovieInput: ImageSource {
     public var runBenchmark = false
     
     var completionCallback: (() -> Void)? = nil
+    public var timeDidChange: ((TimeInterval, TimeInterval) -> Void)? = nil
     
     let yuvConversionShader:ShaderProgram
     let asset:AVAsset
@@ -107,6 +108,7 @@ public class MovieInput: ImageSource {
             if let sampleBuffer = videoTrackOutput.copyNextSampleBuffer() {
                 
                 let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
+                timeDidChange?(currentSampleTime.seconds, asset.duration.seconds)
                 
                 if (playAtActualSpeed) {
                     // Do this outside of the video processing queue to not slow that down while waiting
