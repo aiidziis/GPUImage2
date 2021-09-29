@@ -5,7 +5,7 @@ public class MovieInput: ImageSource {
     public var runBenchmark = false
     
     var completionCallback: (() -> Void)? = nil
-    var timeDidChange: ((TimeInterval, TimeInterval) -> Void)? = nil
+    public var timeDidChange: ((TimeInterval, TimeInterval) -> Void)? = nil
     
     let yuvConversionShader:ShaderProgram
     let asset:AVAsset
