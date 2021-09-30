@@ -86,7 +86,9 @@ public class MovieInput: ImageSource {
     
     public func cancel() {
         assetReader.cancelReading()
-        self.endProcessing()
+        self.completionCallback = nil
+        self.timeDidChange = nil
+//        self.endProcessing()
     }
     
     func endProcessing() {
@@ -94,6 +96,7 @@ public class MovieInput: ImageSource {
             callback()
             self.completionCallback = nil
         }
+        self.timeDidChange = nil
     }
     
     // MARK: -
