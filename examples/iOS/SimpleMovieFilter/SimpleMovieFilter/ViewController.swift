@@ -18,15 +18,22 @@ class ViewController: UIViewController {
             movie = try MovieInput(url:movieURL, playAtActualSpeed:true, loop: false, startSecond: 30)
             filter = Pixellate()
             movie --> filter --> renderView
-            movie.runBenchmark = true
+            movie.runBenchmark = false
             movie.start()
         } catch {
             print("Couldn't process movie with error: \(error)")
         }
-
-//            let documentsDir = try NSFileManager.defaultManager().URLForDirectory(.DocumentDirectory, inDomain:.UserDomainMask, appropriateForURL:nil, create:true)
-//            let fileURL = NSURL(string:"test.png", relativeToURL:documentsDir)!
-//            try pngImage.writeToURL(fileURL, options:.DataWritingAtomic)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            self.takePhoto()
+        }
+    }
+    
+    func takePhoto() {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("image.png")
+        movie.saveNextFrameToURL(url, format: .png) { didSave in
+            print("did save image to URL \(didSave) \(url)")
+        }
     }
 }
 
