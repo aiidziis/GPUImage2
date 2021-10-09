@@ -3,6 +3,7 @@ import AVFoundation
 public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
+    public var playSound = false
     
     var completionCallback: (() -> Void)? = nil
     public var timeDidChange: ((TimeInterval, TimeInterval) -> Void)? = nil
@@ -20,6 +21,12 @@ public class MovieInput: ImageSource {
     var totalFrameTimeDuringCapture:Double = 0.0
     
     var startSecond: Double = 0
+    
+    var hasAudioTrack = false
+    // Add all below three lines
+    var theAudioPlayer: AVPlayer?
+    var startActualFrameTime: CFAbsoluteTime?
+    var currentVideoTime: Double = 0
 
     // TODO: Add movie reader synchronization
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
@@ -37,6 +44,7 @@ public class MovieInput: ImageSource {
         readerVideoTrackOutput.alwaysCopiesSampleData = false
         assetReader.add(readerVideoTrackOutput)
         // TODO: Audio here
+        hasAudioTrack = self.asset.tracks(withMediaType: AVMediaType.audio).count > 0
     }
 
     public convenience init(url:URL, playAtActualSpeed:Bool = false, loop:Bool = false, startSecond: Double = 0) throws {
@@ -50,6 +58,10 @@ public class MovieInput: ImageSource {
 
     public func start( completionCallback callback: (() -> Void)? = nil) {
         self.completionCallback = callback
+        currentVideoTime = 0.0
+        if playSound {
+            setupSound()
+        }
         asset.loadValuesAsynchronously(forKeys:["tracks"], completionHandler:{
             standardProcessingQueue.async(execute: {
                 guard (self.asset.statusOfValue(forKey: "tracks", error:nil) == .loaded) else { return }
@@ -89,6 +101,10 @@ public class MovieInput: ImageSource {
         self.completionCallback = nil
         self.timeDidChange = nil
 //        self.endProcessing()
+        if (theAudioPlayer != nil) {
+            theAudioPlayer?.pause();
+            theAudioPlayer = nil
+        }
     }
     
     func endProcessing() {
@@ -97,6 +113,20 @@ public class MovieInput: ImageSource {
             self.completionCallback = nil
         }
         self.timeDidChange = nil
+        
+        if (theAudioPlayer != nil) {
+            theAudioPlayer?.pause();
+            theAudioPlayer = nil
+        }
+    }
+    
+    func setupSound() {
+        if (theAudioPlayer != nil) {
+            theAudioPlayer?.pause()
+            theAudioPlayer = nil
+        }
+        let playerItem = AVPlayerItem(asset: asset)
+        theAudioPlayer = AVPlayer(playerItem: playerItem)
     }
     
     // MARK: -
@@ -119,6 +149,8 @@ public class MovieInput: ImageSource {
                     let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
                     let currentActualTime = CFAbsoluteTimeGetCurrent()
                     
+                    startActualFrameTime = currentActualTime - currentVideoTime
+                    
                     let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
                     let actualTimeDifference = currentActualTime - previousActualFrameTime
                     
@@ -131,6 +163,8 @@ public class MovieInput: ImageSource {
                 } else {
                     let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
                     let currentActualTime = CFAbsoluteTimeGetCurrent()
+                    
+                    startActualFrameTime = currentActualTime - currentVideoTime
                     
                     let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
                     let actualTimeDifference = currentActualTime - previousActualFrameTime
@@ -188,7 +222,13 @@ public class MovieInput: ImageSource {
 //        }
         
         let startTime = CFAbsoluteTimeGetCurrent()
-
+        
+        if (self.playSound && hasAudioTrack && (theAudioPlayer?.rate == 0 && theAudioPlayer?.error == nil)) {
+            let time = CMTime(seconds: startSecond, preferredTimescale: 1000)
+            theAudioPlayer?.seek(to: time)
+            theAudioPlayer?.play()
+        }
+        
 #if os(iOS)
         var luminanceGLTexture: CVOpenGLESTexture?
         
