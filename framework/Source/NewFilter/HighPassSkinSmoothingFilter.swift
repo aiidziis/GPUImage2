@@ -7,7 +7,7 @@
 //
 
 public final class ImageLUTFilter: LookupFilter {
-    init(named: String) {
+    public init(named: String) {
         super.init()
         self.lookupImage = PictureInput(imageName: named)
     }
