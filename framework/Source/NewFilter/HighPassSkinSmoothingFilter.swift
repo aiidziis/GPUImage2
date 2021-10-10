@@ -6,38 +6,38 @@
 //  Copyright © 2019 Salon Software. All rights reserved.
 //
 
-final class ImageLUTFilter: LookupFilter {
+public final class ImageLUTFilter: LookupFilter {
     init(named: String) {
         super.init()
         self.lookupImage = PictureInput(imageName: named)
     }
 }
 
-class HighPassSkinSmoothingFilter: OperationGroup {
+public class HighPassSkinSmoothingFilter: OperationGroup {
     private var dissolveFilter: DissolveBlend = DissolveBlend()
     private var sharpenFilter: Sharpen = Sharpen()
     private var maskGenerator: HighPassSkinSmoothingMaskGenerator = HighPassSkinSmoothingMaskGenerator()
     
-    var amount: Float = 0.0 {
+    public var amount: Float = 0.0 {
         didSet {
             self.dissolveFilter.mix = self.amount
             self.sharpenFilter.sharpness = self.sharpnessFactor * self.amount
         }
     }
    
-    var sharpnessFactor: Float = 0.0 {
+    public var sharpnessFactor: Float = 0.0 {
         didSet {
             self.sharpenFilter.sharpness = self.sharpnessFactor * self.amount
         }
     }
     
-    var radius: HighPassSkinSmoothingRadius = HighPassSkinSmoothingRadius(fraction: 4.5/750.0) {
+    public var radius: HighPassSkinSmoothingRadius = HighPassSkinSmoothingRadius(fraction: 4.5/750.0) {
         didSet {
             self.maskGenerator.highPassRadiusInPixels = self.radius.value
         }
     }
     
-    override init() {
+    public override init() {
         super.init()
         self.amount = 0.75
         self.sharpnessFactor = 0.4

@@ -6,15 +6,15 @@
 //  Copyright © 2019 Salon Software. All rights reserved.
 //
 
-class StillImageHighPassFilter: OperationGroup {
+public class StillImageHighPassFilter: OperationGroup {
     private var gaussianBlur: GaussianBlur = GaussianBlur()
-    var radiusInPixels: Float = 8.0 {
+    public var radiusInPixels: Float = 8.0 {
         didSet {
             self.gaussianBlur.blurRadiusInPixels = self.radiusInPixels
         }
     }
     
-    override init() {
+    public override init() {
         super.init()
         let filter = BasicOperation(fragmentShader: StillImageHighPassFilterFragmentShader, numberOfInputs: 2)
         

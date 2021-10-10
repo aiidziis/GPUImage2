@@ -6,10 +6,10 @@
 //  Copyright © 2019 Salon Software. All rights reserved.
 //
 
-class HighPassSkinSmoothingMaskGenerator: OperationGroup {
+public  class HighPassSkinSmoothingMaskGenerator: OperationGroup {
     private var filter: StillImageHighPassFilter = StillImageHighPassFilter()
     
-    var highPassRadiusInPixels: Float = 8.0 {
+    public var highPassRadiusInPixels: Float = 8.0 {
         didSet {
             self.filter.radiusInPixels = self.highPassRadiusInPixels
         }

@@ -8,21 +8,21 @@
 
 import Foundation
 
-enum HighPassSkinSmoothingRadiusUnit {
+public enum HighPassSkinSmoothingRadiusUnit {
     case pixel
     case fractionOfImageWidth
 }
 
-class HighPassSkinSmoothingRadius {
-    var unit: HighPassSkinSmoothingRadiusUnit
-    var value: Float
+public class HighPassSkinSmoothingRadius {
+    public var unit: HighPassSkinSmoothingRadiusUnit
+    public var value: Float
     
-    init(pixels: Float) {
+    public init(pixels: Float) {
         self.value = pixels
         self.unit = .pixel
     }
     
-    init(fraction: Float) {
+    public init(fraction: Float) {
         self.value = fraction
         self.unit = .fractionOfImageWidth
     }
