@@ -1,4 +1,4 @@
-framework module GPUImage {
+framework module LXGPUImage2 {
   umbrella header "LXGPUImage2-umbrella.h"
 
   export *

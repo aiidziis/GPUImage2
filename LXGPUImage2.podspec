@@ -9,7 +9,7 @@ Pod::Spec.new do |s|
     s.source   = { :git => 'https://github.com/thanhminhkma/GPUImage2.git', :tag => s.version }
 
     s.source_files = 'framework/Source/**/*.{swift,h,m}'
-    s.resources = 'framework/Source/Operations/Shaders/*.{fsh}'
+    s.resources = ['framework/Source/Operations/Shaders/*.{fsh}','framework/Source/NewFilter/*.{jpg}]
     s.requires_arc = true
     s.xcconfig = { 'CLANG_MODULES_AUTOLINK' => 'YES',
                    'OTHER_SWIFT_FLAGS' => "$(inherited) -DGLES",
