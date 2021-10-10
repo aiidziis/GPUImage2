@@ -285,6 +285,10 @@ Positions can be provided in 2-D and 3-D coordinates. If a Position is created b
 
 Matrices come in Matrix3x3 and Matrix4x4 varieties. These matrices can be build using a row-major array of Floats, or (on Mac and iOS) can be initialized from CATransform3D or CGAffineTransform structs.
 
+## Beauty filter ##
+add 2 image: lookup.jpg & smooth.jpg to asset
+
+
 ## Built-in operations ##
 
 There are currently over 100 operations built into the framework, divided into the following categories:
