@@ -1,5 +1,5 @@
 PODS:
-  - LXGPUImage2 (6.2.2)
+  - LXGPUImage2 (6.2.3)
 
 DEPENDENCIES:
   - LXGPUImage2 (from `https://github.com/thanhminhkma/GPUImage2.git`)
@@ -10,11 +10,11 @@ EXTERNAL SOURCES:
 
 CHECKOUT OPTIONS:
   LXGPUImage2:
-    :commit: a678e29aaea73a69d209cda21efb55213c01e41c
+    :commit: 761202f71817795956e60bc87cf70b985b0e9ee9
     :git: https://github.com/thanhminhkma/GPUImage2.git
 
 SPEC CHECKSUMS:
-  LXGPUImage2: cfe89b7579590f16c94558e155ca3675a8b06983
+  LXGPUImage2: e364771ceaebdd14dbfe0c900589c27ef1d1cf31
 
 PODFILE CHECKSUM: 32f591ec753328f4c89cba4e7cc448982f861fdb
 

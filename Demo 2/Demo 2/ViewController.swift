@@ -4,6 +4,7 @@ import LXGPUImage2
 class ViewController: UIViewController {
     
     @IBOutlet weak var renderView: RenderView!
+    @IBOutlet private weak var slider: UISlider!
     
 //    var movie:MovieInput!
 //    var filter:Pixellate!
@@ -14,6 +15,10 @@ class ViewController: UIViewController {
     
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
+        
+        
+        self.skinSmoothFilter.amount = 1
+        self.skinSmoothFilter.radius = HighPassSkinSmoothingRadius(pixels: 1 * 16)
         let image = UIImage(named: "SampleImage")
         self.pictureInput = PictureInput(image: image!)
         self.pictureInput.processImage()
@@ -36,6 +41,12 @@ class ViewController: UIViewController {
 //            let documentsDir = try NSFileManager.defaultManager().URLForDirectory(.DocumentDirectory, inDomain:.UserDomainMask, appropriateForURL:nil, create:true)
 //            let fileURL = NSURL(string:"test.png", relativeToURL:documentsDir)!
 //            try pngImage.writeToURL(fileURL, options:.DataWritingAtomic)
+    }
+    
+    @IBAction func didchange(_ sender: UISlider) {
+//        self.skinSmoothFilter.amount = sender.value
+//        self.skinSmoothFilter.radius = HighPassSkinSmoothingRadius(pixels: sender.value * 16)
+//        self.pictureInput.processImage()
     }
 }
 
