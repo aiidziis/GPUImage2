@@ -69,6 +69,7 @@ public class MovieInput: ImageSource {
     var audioSettings:[String:Any]?
     
     var movieFramebuffer:Framebuffer?
+    var isPause = false
     
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
     public init(asset:AVAsset, videoComposition: AVVideoComposition?, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
@@ -109,6 +110,7 @@ public class MovieInput: ImageSource {
             // If the current thread is running and has not been cancelled, bail.
             return
         }
+        self.isPause = false
         // Cancel the thread just to be safe in the event we somehow get here with the thread still running.
         self.currentThread?.cancel()
         
@@ -122,8 +124,14 @@ public class MovieInput: ImageSource {
     }
     
     public func pause() {
+        self.isPause = true
         self.cancel()
         self.requestedStartTime = self.currentTime
+    }
+    
+    public func removeCallback() {
+        progress = nil
+        completion = nil
     }
     
     // MARK: -
@@ -257,8 +265,10 @@ public class MovieInput: ImageSource {
                 self.currentThread?.start()
             }
             else {
-                self.delegate?.didFinishMovie()
-                self.completion?()
+                if !self.isPause {
+                    self.delegate?.didFinishMovie()
+                    self.completion?()
+                }
                 
                 self.synchronizedEncodingDebugPrint("MovieInput finished reading")
                 self.synchronizedEncodingDebugPrint("MovieInput total frames sent: \(self.totalFramesSent)")

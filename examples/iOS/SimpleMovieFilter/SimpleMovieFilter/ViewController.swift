@@ -18,7 +18,12 @@ class ViewController: UIViewController {
         let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
         
         do {
-            let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM]
+            let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM,
+                                       AVSampleRateKey: NSNumber(value: 44100.0),
+                                       AVLinearPCMBitDepthKey: NSNumber(value: 16),
+                                       AVLinearPCMIsNonInterleaved: NSNumber(value: false),
+                                       AVLinearPCMIsFloatKey: NSNumber(value: false),
+                                       AVLinearPCMIsBigEndianKey: NSNumber(value: false)] as [String : Any]
             
             movie = try MovieInput(url:movieURL, playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
             speaker = SpeakerOutput()
