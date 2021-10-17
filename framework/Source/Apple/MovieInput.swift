@@ -1,16 +1,18 @@
 import AVFoundation
 
+public typealias MovieCompletion = (() -> Void)
+
 public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
     public var playSound = false
     
-    var completionCallback: (() -> Void)? = nil
+    var completionCallback: MovieCompletion? = nil
     public var timeDidChange: ((TimeInterval, TimeInterval) -> Void)? = nil
     
     let yuvConversionShader:ShaderProgram
     let asset:AVAsset
-    let assetReader:AVAssetReader
+    var assetReader:AVAssetReader
     let playAtActualSpeed:Bool
     let loop:Bool
     var videoEncodingIsFinished = false
@@ -21,6 +23,9 @@ public class MovieInput: ImageSource {
     var totalFrameTimeDuringCapture:Double = 0.0
     
     var startSecond: Double = 0
+    
+    var seekTime: Double = 0
+    var completionSeekCallback: MovieCompletion? = nil
     
     var hasAudioTrack = false
     // Add all below three lines
@@ -42,6 +47,7 @@ public class MovieInput: ImageSource {
         let outputSettings:[String:AnyObject] = [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange))]
         let readerVideoTrackOutput = AVAssetReaderTrackOutput(track:self.asset.tracks(withMediaType: AVMediaType.video)[0], outputSettings:outputSettings)
         readerVideoTrackOutput.alwaysCopiesSampleData = false
+        readerVideoTrackOutput.supportsRandomAccess = true
         assetReader.add(readerVideoTrackOutput)
         // TODO: Audio here
         hasAudioTrack = self.asset.tracks(withMediaType: AVMediaType.audio).count > 0
@@ -56,14 +62,17 @@ public class MovieInput: ImageSource {
     // MARK: -
     // MARK: Playback control
 
-    public func start( completionCallback callback: (() -> Void)? = nil) {
+    
+    public func start(startSecond: Double = 0, completionCallback callback: MovieCompletion? = nil) {
         self.completionCallback = callback
+        self.startSecond = startSecond
         currentVideoTime = 0.0
         if playSound {
             setupSound()
         }
-        asset.loadValuesAsynchronously(forKeys:["tracks"], completionHandler:{
-            standardProcessingQueue.async(execute: {
+        asset.loadValuesAsynchronously(forKeys:["tracks"], completionHandler:{ [weak self] in
+            standardProcessingQueue.async(execute: {  [weak self] in
+                guard let self = self else { return }
                 guard (self.asset.statusOfValue(forKey: "tracks", error:nil) == .loaded) else { return }
 
                 guard self.assetReader.startReading() else {
@@ -79,21 +88,58 @@ public class MovieInput: ImageSource {
                     }
                 }
                 
-                while (self.assetReader.status == .reading) {
-                    self.readNextVideoFrame(from:readerVideoTrackOutput!)
-                }
-                
-                if (self.assetReader.status == .completed) {
-                    self.assetReader.cancelReading()
-                    
-                    if (self.loop) {
-                        // TODO: Restart movie processing
-                    } else {
-                        self.endProcessing()
-                    }
-                }
+                self.startPlayAfterLoadedAsset(readerVideoTrackOutput: readerVideoTrackOutput)
             })
         })
+    }
+    
+    public func seekVideoTO(seconds: Double, completion: MovieCompletion? = nil) throws {
+        self.completionSeekCallback = completion
+        seekTime = seconds
+        print("TTTT: start seeking \(seekTime)")
+
+    }
+    
+    private func doSeek() throws {
+        
+        
+        assetReader = try AVAssetReader(asset:self.asset)
+        let outputSettings:[String:AnyObject] = [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange))]
+        let readerVideoTrackOutput = AVAssetReaderTrackOutput(track:self.asset.tracks(withMediaType: AVMediaType.video)[0], outputSettings:outputSettings)
+        readerVideoTrackOutput.alwaysCopiesSampleData = false
+        readerVideoTrackOutput.supportsRandomAccess = true
+        assetReader.add(readerVideoTrackOutput)
+        // TODO: Audio here
+        hasAudioTrack = self.asset.tracks(withMediaType: AVMediaType.audio).count > 0
+        
+        start(startSecond: seekTime, completionCallback: completionCallback)
+        
+        seekTime = 0
+    }
+    
+    private func startPlayAfterLoadedAsset(readerVideoTrackOutput: AVAssetReaderOutput?) {
+        guard let readerVideoTrackOutput = readerVideoTrackOutput else {
+            self.endProcessing()
+            return
+        }
+            
+        while (self.assetReader.status == .reading && seekTime == 0) {
+            self.readNextVideoFrame(from:readerVideoTrackOutput)
+        }
+        
+        if (self.assetReader.status == .completed) {
+            self.assetReader.cancelReading()
+            
+            if (self.loop) {
+                // TODO: Restart movie processing
+            } else {
+                self.endProcessing()
+            }
+        }
+        
+        if seekTime > 0 {
+            try? doSeek()
+        }
     }
     
     public func cancel() {
@@ -141,41 +187,25 @@ public class MovieInput: ImageSource {
             if let sampleBuffer = videoTrackOutput.copyNextSampleBuffer() {
                 
                 let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
-                timeDidChange?(currentSampleTime.seconds, asset.duration.seconds)
                 
-                if (playAtActualSpeed) {
                     // Do this outside of the video processing queue to not slow that down while waiting
-                    
-                    let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
-                    let currentActualTime = CFAbsoluteTimeGetCurrent()
-                    
-                    startActualFrameTime = currentActualTime - currentVideoTime
-                    
-                    let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
-                    let actualTimeDifference = currentActualTime - previousActualFrameTime
-                    
-                    if (frameTimeDifference > actualTimeDifference) && checkValidTime(time: currentSampleTime) {
-                        usleep(UInt32(round(1000000.0 * (frameTimeDifference - actualTimeDifference))))
-                    }
-                    
-                    previousFrameTime = currentSampleTime
-                    previousActualFrameTime = CFAbsoluteTimeGetCurrent()
-                } else {
-                    let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
-                    let currentActualTime = CFAbsoluteTimeGetCurrent()
-                    
-                    startActualFrameTime = currentActualTime - currentVideoTime
-                    
-                    let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
-                    let actualTimeDifference = currentActualTime - previousActualFrameTime
-                    
-                    if (frameTimeDifference > actualTimeDifference) {
-                        usleep(UInt32(round(1000.0 * (frameTimeDifference - actualTimeDifference))))
-                    }
-                    
-                    previousFrameTime = currentSampleTime
-                    previousActualFrameTime = CFAbsoluteTimeGetCurrent()
+                let differenceFromLastFrame = CMTimeSubtract(currentSampleTime, previousFrameTime)
+                let currentActualTime = CFAbsoluteTimeGetCurrent()
+                
+                startActualFrameTime = currentActualTime - currentVideoTime
+                
+                let frameTimeDifference = CMTimeGetSeconds(differenceFromLastFrame)
+                let actualTimeDifference = currentActualTime - previousActualFrameTime
+                
+                if (frameTimeDifference > actualTimeDifference) && checkValidTime(time: currentSampleTime) && playAtActualSpeed {
+                    timeDidChange?(currentSampleTime.seconds, asset.duration.seconds)
+                    self.completionSeekCallback?()
+                    self.completionSeekCallback = nil
+                    usleep(UInt32(round(1000000.0 * (frameTimeDifference - actualTimeDifference))))
                 }
+                
+                previousFrameTime = currentSampleTime
+                previousActualFrameTime = CFAbsoluteTimeGetCurrent()
 
                 sharedImageProcessingContext.runOperationSynchronously{
                     if checkValidTime(time: currentSampleTime) {
@@ -199,8 +229,6 @@ public class MovieInput: ImageSource {
     func process(movieFrame frame:CMSampleBuffer) {
         let currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(frame)
         let movieFrame = CMSampleBufferGetImageBuffer(frame)!
-    
-//        processingFrameTime = currentSampleTime
         self.process(movieFrame:movieFrame, withSampleTime:currentSampleTime)
     }
     
@@ -210,16 +238,6 @@ public class MovieInput: ImageSource {
         CVPixelBufferLockBaseAddress(movieFrame, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
 
         let conversionMatrix = colorConversionMatrix601FullRangeDefault
-        // TODO: Get this color query working
-//        if let colorAttachments = CVBufferGetAttachment(movieFrame, kCVImageBufferYCbCrMatrixKey, nil) {
-//            if(CFStringCompare(colorAttachments, kCVImageBufferYCbCrMatrix_ITU_R_601_4, 0) == .EqualTo) {
-//                _preferredConversion = kColorConversion601FullRange
-//            } else {
-//                _preferredConversion = kColorConversion709
-//            }
-//        } else {
-//            _preferredConversion = kColorConversion601FullRange
-//        }
         
         let startTime = CFAbsoluteTimeGetCurrent()
         

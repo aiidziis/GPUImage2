@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="18122" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="19162" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina6_1" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="18093"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="19144"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -23,10 +23,19 @@
                                 <rect key="frame" x="0.0" y="28" width="414" height="572"/>
                                 <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                             </view>
+                            <slider opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" value="0.5" minValue="0.0" maxValue="1" translatesAutoresizingMaskIntoConstraints="NO" id="g37-UM-0Mi">
+                                <rect key="frame" x="28" y="792" width="358" height="31"/>
+                                <connections>
+                                    <action selector="valueSliderChangeWithSlider:" destination="BYZ-38-t0r" eventType="valueChanged" id="l3P-Ev-cqa"/>
+                                </connections>
+                            </slider>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="TZG-4E-PsH" secondAttribute="bottom" constant="262" id="0BW-Y5-MTK"/>
+                            <constraint firstAttribute="trailingMargin" secondItem="g37-UM-0Mi" secondAttribute="trailing" constant="10" id="KC6-sH-JlS"/>
+                            <constraint firstItem="g37-UM-0Mi" firstAttribute="leading" secondItem="mTz-kJ-GVc" secondAttribute="leadingMargin" constant="10" id="Kam-xw-UEp"/>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="g37-UM-0Mi" secondAttribute="bottom" constant="40" id="dKl-EQ-7Gf"/>
                             <constraint firstAttribute="trailing" secondItem="TZG-4E-PsH" secondAttribute="trailing" id="eaB-aM-y2J"/>
                             <constraint firstItem="TZG-4E-PsH" firstAttribute="leading" secondItem="mTz-kJ-GVc" secondAttribute="leading" id="j8T-4u-Tsw"/>
                             <constraint firstItem="TZG-4E-PsH" firstAttribute="top" secondItem="mTz-kJ-GVc" secondAttribute="topMargin" constant="-16" id="shS-zh-NGe"/>
@@ -34,6 +43,7 @@
                     </view>
                     <connections>
                         <outlet property="renderView" destination="TZG-4E-PsH" id="hs7-9N-6BV"/>
+                        <outlet property="slider" destination="g37-UM-0Mi" id="rp9-us-lJv"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
