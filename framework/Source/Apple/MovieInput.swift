@@ -70,6 +70,8 @@ public class MovieInput: ImageSource {
     
     var movieFramebuffer:Framebuffer?
     var isPause = false
+    var seekTime: CMTime?
+    var duration: Double = 0.0
     
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
     public init(asset:AVAsset, videoComposition: AVVideoComposition?, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
@@ -79,6 +81,7 @@ public class MovieInput: ImageSource {
         self.loop = loop
         self.yuvConversionShader = crashOnShaderCompileFailure("MovieInput"){try sharedImageProcessingContext.programForVertexShader(defaultVertexShaderForInputs(2), fragmentShader:YUVConversionFullRangeFragmentShader)}
         self.audioSettings = audioSettings
+        self.duration = asset.duration.seconds
     }
 
     public convenience init(url:URL, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
@@ -103,6 +106,13 @@ public class MovieInput: ImageSource {
         self.start()
     }
     
+    public func seek(totime: Double) {
+        let time = CMTime(seconds: totime, preferredTimescale: 1000)
+        self.seekTime = time
+        self.requestedStartTime = time
+        self.start()
+    }
+    
     @objc public func start() {
         if let currentThread = self.currentThread,
             currentThread.isExecuting,
@@ -116,9 +126,11 @@ public class MovieInput: ImageSource {
         
         self.currentThread = Thread(target: self, selector: #selector(beginReading), object: nil)
         self.currentThread?.start()
+        print("start: -------------- \(currentThread)")
     }
     
     public func cancel() {
+        print("cancel: -------------- \(currentThread)")
         self.currentThread?.cancel()
         self.currentThread = nil
     }
@@ -329,11 +341,21 @@ public class MovieInput: ImageSource {
             }
         }
         
-        self.progress?(currentSampleTime.seconds/duration.seconds)
+//        print("Return current: \(currentTime?.seconds) duration: \(self.duration)")
+//        if let current = self.currentTime, current.seconds > (self.duration - 0.04) {
+//            self.progress?(1)
+//            return
+//        }
         
         sharedImageProcessingContext.runOperationSynchronously{
             self.process(movieFrame:sampleBuffer)
             CMSampleBufferInvalidate(sampleBuffer)
+        }
+        if let seekTime = self.seekTime, let current = self.currentTime, current > seekTime {
+            self.seekTime = nil
+            pause()
+        } else {
+            self.progress?(currentSampleTime.seconds/duration.seconds)
         }
     }
     
