@@ -1,7 +1,7 @@
 Pod::Spec.new do |s|
     s.name     = 'LXGPUImage2'
     s.module_name   = 'LXGPUImage2'
-    s.version  = '6.2.4'
+    s.version  = '6.2.5'
     s.license  = 'BSD'
     s.summary  = 'An open source iOS framework for GPU-based image and video processing.'
     s.homepage = 'https://github.com/thanhminhkma/GPUImage2'
