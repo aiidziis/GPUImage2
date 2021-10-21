@@ -11,6 +11,11 @@ public final class ImageLUTFilter: LookupFilter {
         super.init()
         self.lookupImage = PictureInput(imageName: named)
     }
+    
+    public init(image: UIImage) {
+        super.init()
+        self.lookupImage = PictureInput(image: image)
+    }
 }
 
 public class HighPassSkinSmoothingFilter: OperationGroup {
@@ -34,6 +39,28 @@ public class HighPassSkinSmoothingFilter: OperationGroup {
     public var radius: HighPassSkinSmoothingRadius = HighPassSkinSmoothingRadius(fraction: 4.5/750.0) {
         didSet {
             self.maskGenerator.highPassRadiusInPixels = self.radius.value
+        }
+    }
+    
+    public init(image: UIImage) {
+        super.init()
+        self.amount = 0.75
+        self.sharpnessFactor = 0.4
+        self.radius = HighPassSkinSmoothingRadius(fraction: 4.5/750.0)
+        
+        let composeFilter = BasicOperation(fragmentShader: HighpassSkinSmoothingCompositingFilterFragmentShader, numberOfInputs: 3)
+        let exposureFilter = ExposureAdjustment()
+        exposureFilter.exposure = -1.0
+        let lookup = ImageLUTFilter(image: image)
+      
+        self.configureGroup { (input, output) in
+//            self.dissolveFilter.activatePassthroughOnNextFrame = true
+            input --> composeFilter
+            input --> self.dissolveFilter
+            input --> lookup --> self.dissolveFilter --> composeFilter
+            input --> exposureFilter --> self.maskGenerator --> composeFilter
+         
+            composeFilter --> self.sharpenFilter --> output
         }
     }
     
