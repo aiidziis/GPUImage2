@@ -33,7 +33,7 @@ class ViewController: UIViewController {
             
             filter = Pixellate()
             movie --> filter --> renderView
-            movie.runBenchmark = true
+            movie.runBenchmark = false
             
             movie.start()
 //            speaker.start()

@@ -73,6 +73,20 @@ public class MovieInput: ImageSource {
     var seekTime: CMTime?
     var duration: Double = 0.0
     
+    private var currentNeedAddedTime: Double = 0
+    private var requestStartIndex: Int = 0
+    
+    private var currentIndex = 0 {
+        didSet {
+            currentNeedAddedTime = 0
+            for i in 0..<currentIndex {
+                let asset = assets[i]
+                currentNeedAddedTime += asset.duration.seconds
+            }
+            print("currentNeedAddedTime \(currentNeedAddedTime)")
+        }
+    }
+    
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
     public init(assets: [AVAsset], videoComposition: AVVideoComposition?, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
         self.assets = assets
@@ -158,15 +172,16 @@ public class MovieInput: ImageSource {
             let outputSettings:[String:AnyObject] =
                 [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange))]
             var arrReaders: [AVAssetReader] = [];
-            for asset in self.assets {
+            var indexTimeSeconds: Double = 0
+            for i in 0..<assets.count {
+                let asset = assets[i]
                 let assetReader = try AVAssetReader.init(asset: asset)
                 
                 if(self.videoComposition == nil) {
                     let readerVideoTrackOutput = AVAssetReaderTrackOutput(track: asset.tracks(withMediaType: .video).first!, outputSettings:outputSettings)
                     readerVideoTrackOutput.alwaysCopiesSampleData = false
                     assetReader.add(readerVideoTrackOutput)
-                }
-                else {
+                } else {
                     let readerVideoTrackOutput = AVAssetReaderVideoCompositionOutput(videoTracks: asset.tracks(withMediaType: .video), videoSettings: outputSettings)
                     readerVideoTrackOutput.videoComposition = self.videoComposition
                     readerVideoTrackOutput.alwaysCopiesSampleData = false
@@ -180,13 +195,21 @@ public class MovieInput: ImageSource {
                     assetReader.add(readerAudioTrackOutput)
                 }
                 arrReaders.append(assetReader)
+                
+                if let requestedStartTime = self.requestedStartTime {
+                    let maxDuration = asset.duration.seconds + indexTimeSeconds
+                    if requestedStartTime.seconds > indexTimeSeconds && requestedStartTime.seconds < maxDuration {
+                        let secondsRequest = requestedStartTime.seconds - indexTimeSeconds
+                        let startTimerange = CMTime(seconds: secondsRequest, preferredTimescale: asset.duration.timescale)
+                        assetReader.timeRange = CMTimeRange(start: startTimerange, duration: kCMTimePositiveInfinity)
+                        requestStartIndex = i;
+                        self.startTime = startTimerange
+                    } else {
+                        indexTimeSeconds += asset.duration.seconds
+                    }
+                }
             }
             
-            self.startTime = self.requestedStartTime
-        // TODO: check start time here
-//            if let requestedStartTime = self.requestedStartTime {
-//                assetReader.timeRange = CMTimeRange(start: requestedStartTime, duration: kCMTimePositiveInfinity)
-//            }
             self.requestedStartTime = nil
             self.currentTime = nil
             self.actualStartTime = nil
@@ -218,8 +241,12 @@ public class MovieInput: ImageSource {
             return // A return statement in this frame will end thread execution.
         }
         
-        var currentIndex = 0
+        currentIndex = 0
         while currentIndex < assetReaders.count {
+            if currentIndex < requestStartIndex {
+                currentIndex += 1
+                continue
+            }
             let assetReader = assetReaders[currentIndex]
             do {
                 try NSObject.catchException {
@@ -279,6 +306,8 @@ public class MovieInput: ImageSource {
             
             assetReader.cancelReading()
             currentIndex += 1
+            
+            mach_wait_until(mach_absolute_time()+1000000);
         }
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
@@ -322,7 +351,10 @@ public class MovieInput: ImageSource {
         let durationSecond = assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
         var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
         
-        self.currentTime = currentSampleTime
+//        self.currentTime = currentSampleTime
+        self.currentTime = CMTime(seconds: currentSampleTime.seconds + currentNeedAddedTime, preferredTimescale: currentSampleTime.timescale)
+        
+        print("TTTTT: \(self.currentTime?.seconds) \(currentSampleTime.seconds) \(self.currentNeedAddedTime)")
         
         if let startTime = self.startTime {
             // Make sure our samples start at kCMTimeZero if the video was started midway.
