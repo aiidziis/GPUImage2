@@ -5,6 +5,8 @@
 //  Created by Taras Chernyshenko on 7/23/19.
 //  Copyright © 2019 Salon Software. All rights reserved.
 //
+import Foundation
+import UIKit
 
 public final class ImageLUTFilter: LookupFilter {
     public init(named: String) {

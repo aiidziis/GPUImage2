@@ -23,7 +23,7 @@ public class MovieInput: ImageSource {
     }
     
     let yuvConversionShader:ShaderProgram
-    let asset:AVAsset
+    let assets: [AVAsset]
     let videoComposition:AVVideoComposition?
     var playAtActualSpeed:Bool
     
@@ -74,20 +74,23 @@ public class MovieInput: ImageSource {
     var duration: Double = 0.0
     
     // TODO: Someone will have to add back in the AVPlayerItem logic, because I don't know how that works
-    public init(asset:AVAsset, videoComposition: AVVideoComposition?, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
-        self.asset = asset
+    public init(assets: [AVAsset], videoComposition: AVVideoComposition?, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
+        self.assets = assets
         self.videoComposition = videoComposition
         self.playAtActualSpeed = playAtActualSpeed
         self.loop = loop
         self.yuvConversionShader = crashOnShaderCompileFailure("MovieInput"){try sharedImageProcessingContext.programForVertexShader(defaultVertexShaderForInputs(2), fragmentShader:YUVConversionFullRangeFragmentShader)}
         self.audioSettings = audioSettings
-        self.duration = asset.duration.seconds
+        
+        self.duration = assets.map{ $0.duration.seconds }.reduce(0, +)
     }
 
-    public convenience init(url:URL, playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
+    public convenience init(urls: [URL], playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
         let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
-        let inputAsset = AVURLAsset(url:url, options:inputOptions)
-        try self.init(asset:inputAsset, videoComposition: nil, playAtActualSpeed:playAtActualSpeed, loop:loop, audioSettings:audioSettings)
+        let inputAssets = urls.map { url in
+            return AVURLAsset(url:url, options:inputOptions)
+        }
+        try self.init(assets:inputAssets, videoComposition: nil, playAtActualSpeed:playAtActualSpeed, loop:loop, audioSettings:audioSettings)
     }
     
     deinit {
@@ -126,11 +129,11 @@ public class MovieInput: ImageSource {
         
         self.currentThread = Thread(target: self, selector: #selector(beginReading), object: nil)
         self.currentThread?.start()
-        print("start: -------------- \(currentThread)")
+        print("start: -------------- \(String(describing: currentThread))")
     }
     
     public func cancel() {
-        print("cancel: -------------- \(currentThread)")
+        print("cancel: -------------- \(String(describing: currentThread))")
         self.currentThread?.cancel()
         self.currentThread = nil
     }
@@ -149,42 +152,46 @@ public class MovieInput: ImageSource {
     // MARK: -
     // MARK: Internal processing functions
     
-    func createReader() -> AVAssetReader?
+    func createReader() -> [AVAssetReader]?
     {
         do {
             let outputSettings:[String:AnyObject] =
                 [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange))]
-            
-            let assetReader = try AVAssetReader.init(asset: self.asset)
-            
-            if(self.videoComposition == nil) {
-                let readerVideoTrackOutput = AVAssetReaderTrackOutput(track: self.asset.tracks(withMediaType: .video).first!, outputSettings:outputSettings)
-                readerVideoTrackOutput.alwaysCopiesSampleData = false
-                assetReader.add(readerVideoTrackOutput)
-            }
-            else {
-                let readerVideoTrackOutput = AVAssetReaderVideoCompositionOutput(videoTracks: self.asset.tracks(withMediaType: .video), videoSettings: outputSettings)
-                readerVideoTrackOutput.videoComposition = self.videoComposition
-                readerVideoTrackOutput.alwaysCopiesSampleData = false
-                assetReader.add(readerVideoTrackOutput)
-            }
-            
-            if let audioTrack = self.asset.tracks(withMediaType: .audio).first,
-                let _ = self.audioEncodingTarget {
-                let readerAudioTrackOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: audioSettings)
-                readerAudioTrackOutput.alwaysCopiesSampleData = false
-                assetReader.add(readerAudioTrackOutput)
+            var arrReaders: [AVAssetReader] = [];
+            for asset in self.assets {
+                let assetReader = try AVAssetReader.init(asset: asset)
+                
+                if(self.videoComposition == nil) {
+                    let readerVideoTrackOutput = AVAssetReaderTrackOutput(track: asset.tracks(withMediaType: .video).first!, outputSettings:outputSettings)
+                    readerVideoTrackOutput.alwaysCopiesSampleData = false
+                    assetReader.add(readerVideoTrackOutput)
+                }
+                else {
+                    let readerVideoTrackOutput = AVAssetReaderVideoCompositionOutput(videoTracks: asset.tracks(withMediaType: .video), videoSettings: outputSettings)
+                    readerVideoTrackOutput.videoComposition = self.videoComposition
+                    readerVideoTrackOutput.alwaysCopiesSampleData = false
+                    assetReader.add(readerVideoTrackOutput)
+                }
+                
+                if let audioTrack = asset.tracks(withMediaType: .audio).first,
+                    let _ = self.audioEncodingTarget {
+                    let readerAudioTrackOutput = AVAssetReaderTrackOutput(track: audioTrack, outputSettings: audioSettings)
+                    readerAudioTrackOutput.alwaysCopiesSampleData = false
+                    assetReader.add(readerAudioTrackOutput)
+                }
+                arrReaders.append(assetReader)
             }
             
             self.startTime = self.requestedStartTime
-            if let requestedStartTime = self.requestedStartTime {
-                assetReader.timeRange = CMTimeRange(start: requestedStartTime, duration: kCMTimePositiveInfinity)
-            }
+        // TODO: check start time here
+//            if let requestedStartTime = self.requestedStartTime {
+//                assetReader.timeRange = CMTimeRange(start: requestedStartTime, duration: kCMTimePositiveInfinity)
+//            }
             self.requestedStartTime = nil
             self.currentTime = nil
             self.actualStartTime = nil
             
-            return assetReader
+            return arrReaders
         } catch {
             print("ERROR: Unable to create asset reader: \(error)")
         }
@@ -207,66 +214,72 @@ public class MovieInput: ImageSource {
             thread.qualityOfService = .default
         }
         
-        guard let assetReader = self.createReader() else {
+        guard let assetReaders = self.createReader() else {
             return // A return statement in this frame will end thread execution.
         }
         
-        do {
-            try NSObject.catchException {
-                guard assetReader.startReading() else {
-                    print("ERROR: Unable to start reading: \(String(describing: assetReader.error))")
-                    return
+        var currentIndex = 0
+        while currentIndex < assetReaders.count {
+            let assetReader = assetReaders[currentIndex]
+            do {
+                try NSObject.catchException {
+                    guard assetReader.startReading() else {
+                        print("ERROR: Unable to start reading: \(String(describing: assetReader.error))")
+                        return
+                    }
                 }
             }
-        }
-        catch {
-            print("ERROR: Unable to start reading: \(error)")
-            return
-        }
-        
-        var readerVideoTrackOutput:AVAssetReaderOutput? = nil
-        var readerAudioTrackOutput:AVAssetReaderOutput? = nil
-        
-        for output in assetReader.outputs {
-            if(output.mediaType == AVMediaType.video.rawValue) {
-                readerVideoTrackOutput = output
+            catch {
+                print("ERROR: Unable to start reading: \(error)")
+                return
             }
-            if(output.mediaType == AVMediaType.audio.rawValue) {
-                readerAudioTrackOutput = output
-            }
-        }
-        
-        while(assetReader.status == .reading) {
-            if(thread.isCancelled) { break }
             
-            if let movieOutput = self.synchronizedMovieOutput {
-                self.conditionLock.lock()
-                if(self.readingShouldWait) {
-                    self.synchronizedEncodingDebugPrint("Disable reading")
-                    self.conditionLock.wait()
-                    self.synchronizedEncodingDebugPrint("Enable reading")
+            var readerVideoTrackOutput:AVAssetReaderOutput? = nil
+            var readerAudioTrackOutput:AVAssetReaderOutput? = nil
+            
+            for output in assetReader.outputs {
+                if(output.mediaType == AVMediaType.video.rawValue) {
+                    readerVideoTrackOutput = output
                 }
-                self.conditionLock.unlock()
+                if(output.mediaType == AVMediaType.audio.rawValue) {
+                    readerAudioTrackOutput = output
+                }
+            }
+            
+            while(assetReader.status == .reading) {
+                if(thread.isCancelled) { break }
                 
-                if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) {
-                    self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+                if let movieOutput = self.synchronizedMovieOutput {
+                    self.conditionLock.lock()
+                    if(self.readingShouldWait) {
+                        self.synchronizedEncodingDebugPrint("Disable reading")
+                        self.conditionLock.wait()
+                        self.synchronizedEncodingDebugPrint("Enable reading")
+                    }
+                    self.conditionLock.unlock()
+                    
+                    if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) {
+                        self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+                    }
+                    
+                    if(movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+                        if let readerAudioTrackOutput = readerAudioTrackOutput {
+                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+                        }
+                    }
                 }
-                if(movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
-                    if let readerAudioTrackOutput = readerAudioTrackOutput {
+                else {
+                    self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+                    if let readerAudioTrackOutput = readerAudioTrackOutput,
+                        self.audioEncodingTarget?.readyForNextAudioBuffer() ?? true {
                         self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
                     }
                 }
             }
-            else {
-                self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
-                if let readerAudioTrackOutput = readerAudioTrackOutput,
-                    self.audioEncodingTarget?.readyForNextAudioBuffer() ?? true {
-                    self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
-                }
-            }
+            
+            assetReader.cancelReading()
+            currentIndex += 1
         }
-        
-        assetReader.cancelReading()
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
         // the current thread from being cancelled in between the below if statement and creating the new thread.
@@ -306,7 +319,8 @@ public class MovieInput: ImageSource {
         self.synchronizedEncodingDebugPrint("Process frame input")
         
         var currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
-        var duration = self.asset.duration // Only used for the progress block so its acuracy is not critical
+        let durationSecond = assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
+        var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
         
         self.currentTime = currentSampleTime
         

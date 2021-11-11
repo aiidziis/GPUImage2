@@ -9,13 +9,15 @@ class ViewController: UIViewController {
     
     var movie:MovieInput!
     var filter:Pixellate!
-    var speaker:SpeakerOutput!
+//    var speaker:SpeakerOutput!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         let bundleURL = Bundle.main.resourceURL!
-        let movieURL = URL(string:"sample_iPod.m4v", relativeTo:bundleURL)!
+        let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
+        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
+        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
         
         do {
             let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM,
@@ -25,16 +27,16 @@ class ViewController: UIViewController {
                                        AVLinearPCMIsFloatKey: NSNumber(value: false),
                                        AVLinearPCMIsBigEndianKey: NSNumber(value: false)] as [String : Any]
             
-            movie = try MovieInput(url:movieURL, playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
-            speaker = SpeakerOutput()
-            movie.audioEncodingTarget = speaker
+            movie = try MovieInput(urls: [movieURL2,movieURL1,movieURL], playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
+//            speaker = SpeakerOutput()
+//            movie.audioEncodingTarget = speaker
             
             filter = Pixellate()
             movie --> filter --> renderView
             movie.runBenchmark = true
             
             movie.start()
-            speaker.start()
+//            speaker.start()
         } catch {
             print("Couldn't process movie with error: \(error)")
         }
@@ -46,17 +48,17 @@ class ViewController: UIViewController {
     
     @IBAction func pause() {
         movie.pause()
-        speaker.cancel()
+//        speaker.cancel()
     }
     
     @IBAction func cancel() {
         movie.cancel()
-        speaker.cancel()
+//        speaker.cancel()
     }
     
     @IBAction func play() {
         movie.start()
-        speaker.start()
+//        speaker.start()
     }
 }
 
