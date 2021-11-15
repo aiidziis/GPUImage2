@@ -7,6 +7,7 @@ public protocol MovieInputDelegate: class {
 public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
+    public var currentTime: CMTime?
     
     public weak var delegate: MovieInputDelegate?
     
@@ -34,7 +35,8 @@ public class MovieInput: ImageSource {
     // Time according to device clock when the video started.
     var actualStartTime:DispatchTime?
     // Last sample time that played.
-    private var currentTime:CMTime?
+    private var currentItemTime: CMTime?
+    private var timeItemPlayed: CMTime?
     
     public var loop:Bool
     
@@ -79,7 +81,7 @@ public class MovieInput: ImageSource {
     private var currentIndex = 0 {
         didSet {
             currentNeedAddedTime = 0
-            for i in 0..<currentIndex {
+            for i in 0..<self.currentIndex {
                 let asset = assets[i]
                 currentNeedAddedTime += asset.duration.seconds
             }
@@ -159,7 +161,7 @@ public class MovieInput: ImageSource {
     }
     
     private func getCurrentTime() -> CMTime? {
-        if let time = currentTime {
+        if let time = currentItemTime {
             var secondDurationPlayed = time
             for i in 0..<currentIndex {
                 secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
@@ -221,8 +223,9 @@ public class MovieInput: ImageSource {
             }
             
             self.requestedStartTime = nil
-            self.currentTime = nil
+            self.currentItemTime = nil
             self.actualStartTime = nil
+            self.currentTime = kCMTimeZero
             
             return arrReaders
         } catch {
@@ -259,6 +262,12 @@ public class MovieInput: ImageSource {
                 continue
             }
             actualStartTime = nil
+            
+            timeItemPlayed = kCMTimeZero
+            for i in 0..<currentIndex {
+                timeItemPlayed = CMTimeAdd(timeItemPlayed!, self.assets[i].duration)
+            }
+            
             let assetReader = assetReaders[currentIndex]
             do {
                 try NSObject.catchException {
@@ -329,7 +338,8 @@ public class MovieInput: ImageSource {
                 self.currentThread?.start()
             }
             else {
-                if !self.isPause {
+                if !self.isPause, self.currentIndex == self.assets.count {
+                    print("completion: \(self.currentIndex) count: \(self.assets.count)")
                     self.delegate?.didFinishMovie()
                     self.completion?()
                 }
@@ -361,10 +371,10 @@ public class MovieInput: ImageSource {
         let durationSecond = assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
         var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
         
-        self.currentTime = currentSampleTime
-//        self.currentTime = CMTime(seconds: currentSampleTime.seconds + currentNeedAddedTime, preferredTimescale: currentSampleTime.timescale)
+        self.currentItemTime = currentSampleTime
+        self.currentTime = CMTimeAdd(self.timeItemPlayed!, currentSampleTime)
         
-        print("TTTTT: \(self.currentTime?.seconds) \(currentSampleTime.seconds) \(self.currentNeedAddedTime)")
+        print("===> \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
         
         if let startTime = self.startTime {
             // Make sure our samples start at kCMTimeZero if the video was started midway.
@@ -411,7 +421,7 @@ public class MovieInput: ImageSource {
             self.seekTime = nil
             pause()
         } else {
-            self.progress?(currentSampleTime.seconds/duration.seconds)
+            self.progress?(currentTime!.seconds/duration.seconds)
         }
     }
     
