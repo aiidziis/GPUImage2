@@ -374,7 +374,7 @@ public class MovieInput: ImageSource {
         self.currentItemTime = currentSampleTime
         self.currentTime = CMTimeAdd(self.timeItemPlayed!, currentSampleTime)
         
-        print("===> \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
+        print("TTTTT:  \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
         
         if let startTime = self.startTime {
             // Make sure our samples start at kCMTimeZero if the video was started midway.

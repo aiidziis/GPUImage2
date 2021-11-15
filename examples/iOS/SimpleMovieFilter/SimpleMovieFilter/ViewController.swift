@@ -6,6 +6,10 @@ import AVFoundation
 class ViewController: UIViewController {
     
     @IBOutlet weak var renderView: RenderView!
+    @IBOutlet weak var progress: UILabel!
+    
+    private var movieInput: MovieInput?
+    private var movieOutput: MovieOutput?
     
     var movie:MovieInput!
     var filter:Pixellate!
@@ -59,6 +63,98 @@ class ViewController: UIViewController {
     @IBAction func play() {
         movie.start()
 //        speaker.start()
+    }
+    
+    @IBAction func merge() {
+        let bundleURL = Bundle.main.resourceURL!
+        let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
+        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
+        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
+        
+        do {
+            let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
+            
+            let asstes = [movieURL2,movieURL,movieURL1].map({
+                AVURLAsset(url: $0, options: inputOptions)
+            })
+            
+            guard let videoTrack = asstes.first!.tracks(withMediaType:AVMediaType.video).first else { return }
+            let audioTrack = asstes.first!.tracks(withMediaType:AVMediaType.audio).first
+            
+            let audioDecodingSettings: [String:Any]?
+            let audioEncodingSettings: [String:Any]?
+            let audioSourceFormatHint: CMFormatDescription? = nil
+            
+            audioDecodingSettings = [AVFormatIDKey:kAudioFormatLinearPCM] // Noncompressed audio samples
+            var acl = AudioChannelLayout()
+            memset(&acl, 0, MemoryLayout<AudioChannelLayout>.size)
+            acl.mChannelLayoutTag = kAudioChannelLayoutTag_Stereo
+            audioEncodingSettings = [
+                AVFormatIDKey:kAudioFormatMPEG4AAC,
+                AVNumberOfChannelsKey:2,
+                AVSampleRateKey:AVAudioSession.sharedInstance().sampleRate,
+                AVChannelLayoutKey:NSData(bytes:&acl, length:MemoryLayout<AudioChannelLayout>.size),
+                AVEncoderBitRateKey:96000
+            ]
+            
+            movieInput = try MovieInput(assets: asstes, videoComposition:nil, playAtActualSpeed:false, loop:false, audioSettings:audioDecodingSettings)
+            
+            let videoEncodingSettings:[String:Any] = [
+                AVVideoCompressionPropertiesKey: [
+                    AVVideoExpectedSourceFrameRateKey:videoTrack.nominalFrameRate,
+                    AVVideoAverageBitRateKey:videoTrack.estimatedDataRate,
+                    AVVideoProfileLevelKey:AVVideoProfileLevelH264HighAutoLevel,
+                    AVVideoH264EntropyModeKey:AVVideoH264EntropyModeCABAC,
+                    AVVideoAllowFrameReorderingKey:videoTrack.requiresFrameReordering],
+                AVVideoCodecKey:AVVideoCodecType.h264]
+            
+            let destinationUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Merge_Allvideo.mp4")
+            
+            try? FileManager().removeItem(at: destinationUrl)
+            movieOutput = try MovieOutput(URL: destinationUrl, size: Size(width: 1080, height: 1920), fileType: AVFileType.mp4, liveVideo: false, videoSettings: videoEncodingSettings, videoNaturalTimeScale: videoTrack.naturalTimeScale, audioSettings: audioEncodingSettings, audioSourceFormatHint: audioSourceFormatHint)
+            
+            if(audioTrack != nil) { movieInput!.audioEncodingTarget = movieOutput }
+            movieInput!.synchronizedMovieOutput = movieOutput
+            
+//            if let filter = self.allTimeFilter?.filter as? BasicOperation {
+//                movieInput! --> filter --> movieOutput!
+//            } else {
+//                movieInput! --> movieOutput!
+//            }
+            
+            movieInput! --> movieOutput!
+            movieInput?.completion = {
+                self.movieOutput?.finishRecording {
+                    self.movieInput?.audioEncodingTarget = nil
+                    self.movieInput?.synchronizedMovieOutput = nil
+                    self.movieInput?.removeAllTargets()
+                    self.movieInput = nil
+                    self.movieOutput = nil
+                    DispatchQueue.main.async {
+                        print("Encoding finished: \(destinationUrl)")
+                    }
+                }
+            }
+            
+            movieInput?.progress = { [weak self] progressVal in
+                DispatchQueue.main.async {
+                    self?.progress.text = String(progressVal)                    
+                }
+            }
+            
+            movieOutput?.startRecording { started, error in
+                if(!started) {
+                    print("ERROR: MovieOutput unable to start writing with error: \(String(describing: error))")
+                    return
+                }
+                self.movieInput?.start()
+                print("Encoding started")
+            }
+            
+        } catch {
+            print("mergeFilter Crash: \(error)")
+        }
+        
     }
 }
 
