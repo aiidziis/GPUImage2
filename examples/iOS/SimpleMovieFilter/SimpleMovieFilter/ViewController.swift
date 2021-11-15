@@ -27,7 +27,7 @@ class ViewController: UIViewController {
                                        AVLinearPCMIsFloatKey: NSNumber(value: false),
                                        AVLinearPCMIsBigEndianKey: NSNumber(value: false)] as [String : Any]
             
-            movie = try MovieInput(urls: [movieURL2,movieURL1,movieURL], playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
+            movie = try MovieInput(urls: [movieURL2,movieURL,movieURL1], playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
 //            speaker = SpeakerOutput()
 //            movie.audioEncodingTarget = speaker
             
@@ -35,7 +35,7 @@ class ViewController: UIViewController {
             movie --> filter --> renderView
             movie.runBenchmark = false
             
-            movie.start()
+            movie.start(atTime: CMTime(seconds: 50, preferredTimescale: 1000))
 //            speaker.start()
         } catch {
             print("Couldn't process movie with error: \(error)")

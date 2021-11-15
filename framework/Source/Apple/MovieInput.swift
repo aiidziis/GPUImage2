@@ -34,7 +34,7 @@ public class MovieInput: ImageSource {
     // Time according to device clock when the video started.
     var actualStartTime:DispatchTime?
     // Last sample time that played.
-    private(set) public var currentTime:CMTime?
+    private var currentTime:CMTime?
     
     public var loop:Bool
     
@@ -155,7 +155,18 @@ public class MovieInput: ImageSource {
     public func pause() {
         self.isPause = true
         self.cancel()
-        self.requestedStartTime = self.currentTime
+        self.requestedStartTime = self.getCurrentTime()
+    }
+    
+    private func getCurrentTime() -> CMTime? {
+        if let time = currentTime {
+            var secondDurationPlayed = time
+            for i in 0..<currentIndex {
+                secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
+            }
+            return secondDurationPlayed
+        }
+        return nil
     }
     
     public func removeCallback() {
@@ -204,9 +215,8 @@ public class MovieInput: ImageSource {
                         assetReader.timeRange = CMTimeRange(start: startTimerange, duration: kCMTimePositiveInfinity)
                         requestStartIndex = i;
                         self.startTime = startTimerange
-                    } else {
-                        indexTimeSeconds += asset.duration.seconds
                     }
+                    indexTimeSeconds += asset.duration.seconds
                 }
             }
             
@@ -243,10 +253,12 @@ public class MovieInput: ImageSource {
         
         currentIndex = 0
         while currentIndex < assetReaders.count {
+            print("TTTTT: current index \(currentIndex)")
             if currentIndex < requestStartIndex {
                 currentIndex += 1
                 continue
             }
+            actualStartTime = nil
             let assetReader = assetReaders[currentIndex]
             do {
                 try NSObject.catchException {
@@ -306,8 +318,6 @@ public class MovieInput: ImageSource {
             
             assetReader.cancelReading()
             currentIndex += 1
-            
-            mach_wait_until(mach_absolute_time()+1000000);
         }
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
@@ -351,8 +361,8 @@ public class MovieInput: ImageSource {
         let durationSecond = assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
         var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
         
-//        self.currentTime = currentSampleTime
-        self.currentTime = CMTime(seconds: currentSampleTime.seconds + currentNeedAddedTime, preferredTimescale: currentSampleTime.timescale)
+        self.currentTime = currentSampleTime
+//        self.currentTime = CMTime(seconds: currentSampleTime.seconds + currentNeedAddedTime, preferredTimescale: currentSampleTime.timescale)
         
         print("TTTTT: \(self.currentTime?.seconds) \(currentSampleTime.seconds) \(self.currentNeedAddedTime)")
         
