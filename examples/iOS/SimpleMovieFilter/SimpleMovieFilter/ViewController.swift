@@ -21,39 +21,40 @@ class ViewController: UIViewController {
     
     private var isFistPlay = false;
     private func firstPlay () -> Bool {
-        if isFistPlay {
-            return false
-        }
-        isFistPlay = true
-        let bundleURL = Bundle.main.resourceURL!
-        let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
-        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
-        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
-        
-        do {
-            let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM,
-                                       AVSampleRateKey: NSNumber(value: 44100.0),
-                                       AVLinearPCMBitDepthKey: NSNumber(value: 16),
-                                       AVLinearPCMIsNonInterleaved: NSNumber(value: false),
-                                       AVLinearPCMIsFloatKey: NSNumber(value: false),
-                                       AVLinearPCMIsBigEndianKey: NSNumber(value: false)] as [String : Any]
-            
-            movie = try MovieInput(urls: [movieURL2,movieURL,movieURL1], playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
-//            speaker = SpeakerOutput()
-//            movie.audioEncodingTarget = speaker
-            
-            filter = Pixellate()
-            movie --> filter --> renderView
-            movie.runBenchmark = false
-            
-            movie.start(atTime: CMTime(seconds: 50, preferredTimescale: 1000))
-            return true
-//            speaker.start()
-        } catch {
-            print("Couldn't process movie with error: \(error)")
-            isFistPlay = false
-            return false
-        }
+//        if isFistPlay {
+//            return false
+//        }
+//        isFistPlay = true
+//        let bundleURL = Bundle.main.resourceURL!
+//        let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
+//        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
+//        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
+//
+//        do {
+//            let audioDecodeSettings = [AVFormatIDKey:kAudioFormatLinearPCM,
+//                                       AVSampleRateKey: NSNumber(value: 44100.0),
+//                                       AVLinearPCMBitDepthKey: NSNumber(value: 16),
+//                                       AVLinearPCMIsNonInterleaved: NSNumber(value: false),
+//                                       AVLinearPCMIsFloatKey: NSNumber(value: false),
+//                                       AVLinearPCMIsBigEndianKey: NSNumber(value: false)] as [String : Any]
+//
+//            movie = try MovieInput(urls: [movieURL2,movieURL,movieURL1], playAtActualSpeed:true, loop:true, audioSettings:audioDecodeSettings)
+////            speaker = SpeakerOutput()
+////            movie.audioEncodingTarget = speaker
+//
+//            filter = Pixellate()
+//            movie --> filter --> renderView
+//            movie.runBenchmark = false
+//
+//            movie.start(atTime: CMTime(seconds: 50, preferredTimescale: 1000))
+//            return true
+////            speaker.start()
+//        } catch {
+//            print("Couldn't process movie with error: \(error)")
+//            isFistPlay = false
+//            return false
+//        }
+        return false
     }
     
     @IBAction func pause() {
@@ -73,16 +74,23 @@ class ViewController: UIViewController {
         
     }
     
+    func getDocumentsDirectory() -> URL {
+        let paths = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+        let documentsDirectory = paths[0]
+        return documentsDirectory
+    }
+    
     @IBAction func merge() {
         let bundleURL = Bundle.main.resourceURL!
-        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
-        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
-        let movieURL3 = URL(string:"sample3.mp4", relativeTo:bundleURL)!
+//        let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
+//        let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
+//        let movieURL3 = URL(string:"sample3.mp4", relativeTo:bundleURL)!
+        let movieURL4 = URL(string:"sample4.mp4", relativeTo:bundleURL)!
+        let movieURL5 = URL(string:"sample5.mp4", relativeTo:bundleURL)!
         
         do {
             let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
-            
-            let asstes = [movieURL3,movieURL2,movieURL1].map({
+            let asstes = [movieURL4, movieURL5].map({
                 AVURLAsset(url: $0, options: inputOptions)
             })
             
@@ -116,20 +124,17 @@ class ViewController: UIViewController {
                     AVVideoAllowFrameReorderingKey:videoTrack.requiresFrameReordering],
                 AVVideoCodecKey:AVVideoCodecType.h264]
             
-            let destinationUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Merge_Allvideo.mp4")
+            let destinationUrl = getDocumentsDirectory().appendingPathComponent("Merge_Allvideo.mp4")
             print(destinationUrl)
             
             try? FileManager().removeItem(at: destinationUrl)
             movieOutput = try MovieOutput(URL: destinationUrl, size: Size(width: 480, height: 320), fileType: AVFileType.mp4, liveVideo: false, videoSettings: videoEncodingSettings, videoNaturalTimeScale: videoTrack.naturalTimeScale, audioSettings: audioEncodingSettings, audioSourceFormatHint: audioSourceFormatHint)
+            movieInput?.synchronizedEncodingDebug = true
             
-//            if(audioTrack != nil) { movieInput!.audioEncodingTarget = movieOutput }
+            if(audioTrack != nil) { movieInput!.audioEncodingTarget = movieOutput }
             movieInput!.synchronizedMovieOutput = movieOutput
             
-//            if let filter = self.allTimeFilter?.filter as? BasicOperation {
-//                movieInput! --> filter --> movieOutput!
-//            } else {
-//                movieInput! --> movieOutput!
-//            }
+            
             
             movieInput! --> movieOutput!
             movieInput?.completion = {
