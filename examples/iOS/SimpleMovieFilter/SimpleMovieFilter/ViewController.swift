@@ -17,7 +17,14 @@ class ViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+    }
+    
+    private var isFistPlay = false;
+    private func firstPlay () -> Bool {
+        if isFistPlay {
+            return false
+        }
+        isFistPlay = true
         let bundleURL = Bundle.main.resourceURL!
         let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
         let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
@@ -40,14 +47,13 @@ class ViewController: UIViewController {
             movie.runBenchmark = false
             
             movie.start(atTime: CMTime(seconds: 50, preferredTimescale: 1000))
+            return true
 //            speaker.start()
         } catch {
             print("Couldn't process movie with error: \(error)")
+            isFistPlay = false
+            return false
         }
-
-//            let documentsDir = try NSFileManager.defaultManager().URLForDirectory(.DocumentDirectory, inDomain:.UserDomainMask, appropriateForURL:nil, create:true)
-//            let fileURL = NSURL(string:"test.png", relativeToURL:documentsDir)!
-//            try pngImage.writeToURL(fileURL, options:.DataWritingAtomic)
     }
     
     @IBAction func pause() {
@@ -61,20 +67,22 @@ class ViewController: UIViewController {
     }
     
     @IBAction func play() {
-        movie.start()
-//        speaker.start()
+        if !firstPlay() {
+            movie.start()
+        }
+        
     }
     
     @IBAction func merge() {
         let bundleURL = Bundle.main.resourceURL!
-        let movieURL = URL(string:"sample.m4v", relativeTo:bundleURL)!
         let movieURL1 = URL(string:"sample1.mp4", relativeTo:bundleURL)!
         let movieURL2 = URL(string:"sample2.mp4", relativeTo:bundleURL)!
+        let movieURL3 = URL(string:"sample3.mp4", relativeTo:bundleURL)!
         
         do {
             let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
             
-            let asstes = [movieURL2,movieURL,movieURL1].map({
+            let asstes = [movieURL3,movieURL2,movieURL1].map({
                 AVURLAsset(url: $0, options: inputOptions)
             })
             
@@ -109,11 +117,12 @@ class ViewController: UIViewController {
                 AVVideoCodecKey:AVVideoCodecType.h264]
             
             let destinationUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("Merge_Allvideo.mp4")
+            print(destinationUrl)
             
             try? FileManager().removeItem(at: destinationUrl)
-            movieOutput = try MovieOutput(URL: destinationUrl, size: Size(width: 1080, height: 1920), fileType: AVFileType.mp4, liveVideo: false, videoSettings: videoEncodingSettings, videoNaturalTimeScale: videoTrack.naturalTimeScale, audioSettings: audioEncodingSettings, audioSourceFormatHint: audioSourceFormatHint)
+            movieOutput = try MovieOutput(URL: destinationUrl, size: Size(width: 480, height: 320), fileType: AVFileType.mp4, liveVideo: false, videoSettings: videoEncodingSettings, videoNaturalTimeScale: videoTrack.naturalTimeScale, audioSettings: audioEncodingSettings, audioSourceFormatHint: audioSourceFormatHint)
             
-            if(audioTrack != nil) { movieInput!.audioEncodingTarget = movieOutput }
+//            if(audioTrack != nil) { movieInput!.audioEncodingTarget = movieOutput }
             movieInput!.synchronizedMovieOutput = movieOutput
             
 //            if let filter = self.allTimeFilter?.filter as? BasicOperation {

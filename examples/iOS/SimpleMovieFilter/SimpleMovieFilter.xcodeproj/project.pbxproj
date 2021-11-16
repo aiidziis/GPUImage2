@@ -16,6 +16,7 @@
 		BCC49F981CD6E1D800B63EEB /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BCC49F961CD6E1D800B63EEB /* Main.storyboard */; };
 		BCC49F9D1CD6E1D800B63EEB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BCC49F9B1CD6E1D800B63EEB /* LaunchScreen.storyboard */; };
 		BCC49FA61CD6E20000B63EEB /* sample.m4v in Resources */ = {isa = PBXBuildFile; fileRef = BCC49FA51CD6E20000B63EEB /* sample.m4v */; };
+		F059DEC32742A1C000446F57 /* sample3.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F059DEBF2742A1C000446F57 /* sample3.mp4 */; };
 		F0D6E1A6273CF33100754F4A /* sample1.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F0D6E1A5273CF33100754F4A /* sample1.mp4 */; };
 		F0D6E1A8273CF3EF00754F4A /* sample2.mp4 in Resources */ = {isa = PBXBuildFile; fileRef = F0D6E1A7273CF3EF00754F4A /* sample2.mp4 */; };
 /* End PBXBuildFile section */
@@ -83,6 +84,7 @@
 		BCC49F9C1CD6E1D800B63EEB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		BCC49F9E1CD6E1D800B63EEB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BCC49FA51CD6E20000B63EEB /* sample.m4v */ = {isa = PBXFileReference; lastKnownFileType = file; name = sample.m4v; path = ../../../SharedAssets/sample.m4v; sourceTree = "<group>"; };
+		F059DEBF2742A1C000446F57 /* sample3.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample3.mp4; sourceTree = "<group>"; };
 		F0D6E1A5273CF33100754F4A /* sample1.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample1.mp4; sourceTree = "<group>"; };
 		F0D6E1A7273CF3EF00754F4A /* sample2.mp4 */ = {isa = PBXFileReference; lastKnownFileType = file; path = sample2.mp4; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -157,6 +159,7 @@
 				BCC49FA51CD6E20000B63EEB /* sample.m4v */,
 				F0D6E1A5273CF33100754F4A /* sample1.mp4 */,
 				F0D6E1A7273CF3EF00754F4A /* sample2.mp4 */,
+				F059DEBF2742A1C000446F57 /* sample3.mp4 */,
 				BCC49F9B1CD6E1D800B63EEB /* LaunchScreen.storyboard */,
 				BCC49F9E1CD6E1D800B63EEB /* Info.plist */,
 			);
@@ -267,6 +270,7 @@
 				BCC49FA61CD6E20000B63EEB /* sample.m4v in Resources */,
 				BCC49F9D1CD6E1D800B63EEB /* LaunchScreen.storyboard in Resources */,
 				F0D6E1A8273CF3EF00754F4A /* sample2.mp4 in Resources */,
+				F059DEC32742A1C000446F57 /* sample3.mp4 in Resources */,
 				F0D6E1A6273CF33100754F4A /* sample1.mp4 in Resources */,
 				1F2393812071FDE4001886DD /* Assets-iOS.xcassets in Resources */,
 				BCC49F981CD6E1D800B63EEB /* Main.storyboard in Resources */,

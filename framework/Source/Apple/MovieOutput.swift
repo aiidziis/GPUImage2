@@ -58,6 +58,8 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     var synchronizedEncodingDebug = false
     var totalFramesAppended:Int = 0
     
+    var timeStampAdded: CMTime?
+    
     public init(URL:Foundation.URL, size:Size, fileType:AVFileType = .mov, liveVideo:Bool = false, videoSettings:[String:Any]? = nil, videoNaturalTimeScale:CMTimeScale? = nil, audioSettings:[String:Any]? = nil, audioSourceFormatHint:CMFormatDescription? = nil) throws {
         imageProcessingShareGroup = sharedImageProcessingContext.context.sharegroup
         let movieProcessingContext = OpenGLContext()
@@ -199,7 +201,11 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
             }
             
             // Ignore still images and other non-video updates (do I still need this?)
-            guard let frameTime = framebuffer.timingStyle.timestamp?.asCMTime else { return }
+            guard let frameTimeCurrentVideo = framebuffer.timingStyle.timestamp?.asCMTime else { return }
+            var frameTime = frameTimeCurrentVideo
+            if let added = self.timeStampAdded {
+                frameTime = CMTimeAdd(added, frameTime)
+            }
             
             // If two consecutive times with the same value are added to the movie, it aborts recording, so I bail on that case.
             guard (frameTime != self.previousFrameTime) else { return }

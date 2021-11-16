@@ -353,12 +353,21 @@ public class MovieInput: ImageSource {
     func readNextVideoFrame(with assetReader: AVAssetReader, from videoTrackOutput:AVAssetReaderOutput) {
         guard let sampleBuffer = videoTrackOutput.copyNextSampleBuffer() else {
             if let movieOutput = self.synchronizedMovieOutput {
-                movieOutput.movieProcessingContext.runOperationAsynchronously {
-                    // Documentation: "Clients that are monitoring each input's readyForMoreMediaData value must call markAsFinished on an input when they are done
-                    // appending buffers to it. This is necessary to prevent other inputs from stalling, as they may otherwise wait forever
-                    // for that input's media data, attempting to complete the ideal interleaving pattern."
-                    movieOutput.videoEncodingIsFinished = true
-                    movieOutput.assetWriterVideoInput.markAsFinished()
+                if currentIndex == self.assets.count - 1 {
+                    movieOutput.movieProcessingContext.runOperationAsynchronously {
+                        // Documentation: "Clients that are monitoring each input's readyForMoreMediaData value must call markAsFinished on an input when they are done
+                        // appending buffers to it. This is necessary to prevent other inputs from stalling, as they may otherwise wait forever
+                        // for that input's media data, attempting to complete the ideal interleaving pattern."
+                        movieOutput.videoEncodingIsFinished = true
+                        movieOutput.assetWriterVideoInput.markAsFinished()
+                    }
+                } else {
+                    var secondDurationPlayed = CMTime(seconds: 0, preferredTimescale: self.assets[0].duration.timescale)
+                    for i in 0...currentIndex {
+                        secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
+                    }
+                    movieOutput.timeStampAdded = secondDurationPlayed
+                    print("Current index here \(currentIndex) \(secondDurationPlayed.seconds)")
                 }
             }
             return
