@@ -29,6 +29,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     
     public let sources = SourceContainer()
     public let maximumInputs:UInt = 1
+    public var orientation: ImageOrientation = .landscapeLeft
     
     let assetWriter:AVAssetWriter
     let assetWriterVideoInput:AVAssetWriterInput
@@ -294,7 +295,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
         renderFramebuffer.activateFramebufferForRendering()
         clearFramebufferWithColor(Color.black)
         CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
-        renderQuadWithShader(colorSwizzlingShader, uniformSettings:ShaderUniformSettings(), vertexBufferObject:movieProcessingContext.standardImageVBO, inputTextures:[framebuffer.texturePropertiesForOutputRotation(.noRotation)], context: movieProcessingContext)
+        renderQuadWithShader(colorSwizzlingShader, uniformSettings:ShaderUniformSettings(), vertexBufferObject:movieProcessingContext.standardImageVBO, inputTextures:[framebuffer.texturePropertiesForOutputRotation(framebuffer.orientation.rotationNeededForOrientation(self.orientation))], context: movieProcessingContext)
         
         if movieProcessingContext.supportsTextureCaches() {
             glFinish()

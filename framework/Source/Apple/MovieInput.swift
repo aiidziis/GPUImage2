@@ -45,6 +45,8 @@ public class MovieInput: ImageSource {
     // Progress block of the video with a paramater value of 0-1.
     // Can be used to check video encoding progress. Not called from main thread.
     public var progress: ((Double) -> Void)?
+        
+    public var transform2D: ((AVAsset) -> Void)?
     
     public var synchronizedMovieOutput:MovieOutput? {
         didSet {
@@ -160,7 +162,7 @@ public class MovieInput: ImageSource {
         self.requestedStartTime = self.getCurrentTime()
     }
     
-    private func getCurrentTime() -> CMTime? {
+    public func getCurrentTime() -> CMTime? {
         if let time = currentItemTime {
             var secondDurationPlayed = time
             for i in 0..<currentIndex {
@@ -269,6 +271,7 @@ public class MovieInput: ImageSource {
             }
             
             let assetReader = assetReaders[currentIndex]
+            self.transform2D?(assetReader.asset)
             do {
                 try NSObject.catchException {
                     guard assetReader.startReading() else {
