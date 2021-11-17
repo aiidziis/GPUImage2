@@ -297,27 +297,69 @@ public class MovieInput: ImageSource {
                 }
             }
             
-            while(assetReader.status == .reading) {
+            while(assetReader.status == .reading && !(self.synchronizedMovieOutput?.audioEncodingIsFinished ?? false)) {
                 if(thread.isCancelled) { break }
                 
                 if let movieOutput = self.synchronizedMovieOutput {
+                    print("TTTTT:  111");
                     self.conditionLock.lock()
+                    print("TTTTT:  112");
                     if(self.readingShouldWait) {
+                        print("TTTTT:  113");
                         self.synchronizedEncodingDebugPrint("Disable reading")
                         self.conditionLock.wait()
                         self.synchronizedEncodingDebugPrint("Enable reading")
                     }
+                    print("TTTTT: 114");
                     self.conditionLock.unlock()
+                    print("TTTTT:  115");
+                    
+//                    if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) {
+//                        self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+//                    }
+                    
+                    if (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+                        if let readerAudioTrackOutput = readerAudioTrackOutput {
+                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+                        }
+                    }
+                }
+                else {
+//                    self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+                    if let readerAudioTrackOutput = readerAudioTrackOutput,
+                        self.audioEncodingTarget?.readyForNextAudioBuffer() ?? true {
+                        self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+                    }
+                }
+                print("TTTTT:  2");
+            }
+            
+            while(assetReader.status == .reading) {
+                if(thread.isCancelled) { break }
+                
+                if let movieOutput = self.synchronizedMovieOutput {
+                    print("TTTTT:  11");
+                    self.conditionLock.lock()
+                    print("TTTTT:  12");
+                    if(self.readingShouldWait) {
+                        print("TTTTT:  13");
+                        self.synchronizedEncodingDebugPrint("Disable reading")
+                        self.conditionLock.wait()
+                        self.synchronizedEncodingDebugPrint("Enable reading")
+                    }
+                    print("TTTTT:  14");
+                    self.conditionLock.unlock()
+                    print("TTTTT:  15");
                     
                     if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) {
                         self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
                     }
                     
-                    if(movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
-                        if let readerAudioTrackOutput = readerAudioTrackOutput {
-                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
-                        }
-                    }
+//                    if (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+//                        if let readerAudioTrackOutput = readerAudioTrackOutput {
+//                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+//                        }
+//                    }
                 }
                 else {
                     self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
@@ -326,11 +368,14 @@ public class MovieInput: ImageSource {
                         self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
                     }
                 }
+                print("TTTTT:  1");
             }
             
             assetReader.cancelReading()
             currentIndex += 1
         }
+        
+        
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
         // the current thread from being cancelled in between the below if statement and creating the new thread.
@@ -363,6 +408,9 @@ public class MovieInput: ImageSource {
                         // for that input's media data, attempting to complete the ideal interleaving pattern."
                         movieOutput.videoEncodingIsFinished = true
                         movieOutput.assetWriterVideoInput.markAsFinished()
+                        
+                        movieOutput.audioEncodingIsFinished = true
+                        movieOutput.assetWriterAudioInput?.markAsFinished()
                     }
                 } else {
                     var secondDurationPlayed = CMTime(seconds: 0, preferredTimescale: self.assets[0].duration.timescale)
@@ -440,15 +488,24 @@ public class MovieInput: ImageSource {
     func readNextAudioSample(with assetReader: AVAssetReader, from audioTrackOutput:AVAssetReaderOutput) {
         guard let sampleBuffer = audioTrackOutput.copyNextSampleBuffer() else {
             if let movieOutput = self.synchronizedMovieOutput {
-                movieOutput.movieProcessingContext.runOperationAsynchronously {
-                    movieOutput.audioEncodingIsFinished = true
-                    movieOutput.assetWriterAudioInput?.markAsFinished()
+                if currentIndex == self.assets.count - 1 {
+                    movieOutput.movieProcessingContext.runOperationAsynchronously {
+                        movieOutput.audioEncodingIsFinished = true
+                        movieOutput.assetWriterAudioInput?.markAsFinished()
+                    }
+                } else {
+                    movieOutput.movieProcessingContext.runOperationAsynchronously {
+                        movieOutput.audioEncodingIsFinished = true
+                    }
                 }
             }
             return
         }
         
         self.synchronizedEncodingDebugPrint("Process audio sample input")
+        
+        let timeSample = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer);
+        print("TTTTT audio sample time: \(timeSample.seconds)")
         
         self.audioEncodingTarget?.processAudioBuffer(sampleBuffer, shouldInvalidateSampleWhenDone: true)
     }
@@ -601,7 +658,11 @@ public class MovieInput: ImageSource {
         
         self.conditionLock.lock()
         // Allow reading if either input is able to accept data, prevent reading if both inputs are unable to accept data.
-        if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData || movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+        
+        let canAddVideo = movieOutput.assetWriterVideoInput.isReadyForMoreMediaData
+        let canAddAudio = (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false)
+        print("TTTTT:  updateLock \(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) \(movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) ")
+        if(canAddAudio || canAddVideo) {
             self.readingShouldWait = false
             self.conditionLock.signal()
         }

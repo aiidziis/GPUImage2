@@ -56,7 +56,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     
     let movieProcessingContext:OpenGLContext
     
-    var synchronizedEncodingDebug = false
+    public var synchronizedEncodingDebug = true
     var totalFramesAppended:Int = 0
     
     var timeStampAdded: CMTime?
@@ -244,6 +244,8 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
                 try NSObject.catchException {
                     if (!self.assetWriterPixelBufferInput.append(self.pixelBuffer!, withPresentationTime:frameTime)) {
                         print("WARNING: Trouble appending pixel buffer at time: \(frameTime) \(String(describing: self.assetWriter.error))")
+                    }  else {
+                        print("TTTTT added \(frameTime.seconds)")
                     }
                 }
             }
