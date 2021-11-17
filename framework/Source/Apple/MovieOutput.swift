@@ -29,7 +29,6 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     
     public let sources = SourceContainer()
     public let maximumInputs:UInt = 1
-    public var orientation: ImageOrientation = .landscapeLeft
     
     let assetWriter:AVAssetWriter
     let assetWriterVideoInput:AVAssetWriterInput
@@ -58,8 +57,6 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
     
     var synchronizedEncodingDebug = false
     var totalFramesAppended:Int = 0
-    
-    var timeStampAdded: CMTime?
     
     public init(URL:Foundation.URL, size:Size, fileType:AVFileType = .mov, liveVideo:Bool = false, videoSettings:[String:Any]? = nil, videoNaturalTimeScale:CMTimeScale? = nil, audioSettings:[String:Any]? = nil, audioSourceFormatHint:CMFormatDescription? = nil) throws {
         imageProcessingShareGroup = sharedImageProcessingContext.context.sharegroup
@@ -202,11 +199,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
             }
             
             // Ignore still images and other non-video updates (do I still need this?)
-            guard let frameTimeCurrentVideo = framebuffer.timingStyle.timestamp?.asCMTime else { return }
-            var frameTime = frameTimeCurrentVideo
-            if let added = self.timeStampAdded {
-                frameTime = CMTimeAdd(added, frameTime)
-            }
+            guard let frameTime = framebuffer.timingStyle.timestamp?.asCMTime else { return }
             
             // If two consecutive times with the same value are added to the movie, it aborts recording, so I bail on that case.
             guard (frameTime != self.previousFrameTime) else { return }
@@ -295,7 +288,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
         renderFramebuffer.activateFramebufferForRendering()
         clearFramebufferWithColor(Color.black)
         CVPixelBufferLockBaseAddress(pixelBuffer, CVPixelBufferLockFlags(rawValue:CVOptionFlags(0)))
-        renderQuadWithShader(colorSwizzlingShader, uniformSettings:ShaderUniformSettings(), vertexBufferObject:movieProcessingContext.standardImageVBO, inputTextures:[framebuffer.texturePropertiesForOutputRotation(framebuffer.orientation.rotationNeededForOrientation(self.orientation))], context: movieProcessingContext)
+        renderQuadWithShader(colorSwizzlingShader, uniformSettings:ShaderUniformSettings(), vertexBufferObject:movieProcessingContext.standardImageVBO, inputTextures:[framebuffer.texturePropertiesForOutputRotation(.noRotation)], context: movieProcessingContext)
         
         if movieProcessingContext.supportsTextureCaches() {
             glFinish()
@@ -389,4 +382,3 @@ public extension Timestamp {
         }
     }
 }
-
