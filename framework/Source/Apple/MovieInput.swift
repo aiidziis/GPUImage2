@@ -294,6 +294,43 @@ public class MovieInput: ImageSource {
                 }
             }
             
+            while(assetReader.status == .reading && !(self.synchronizedMovieOutput?.audioEncodingIsFinished ?? false)) {
+                if(thread.isCancelled) { break }
+                
+                if let movieOutput = self.synchronizedMovieOutput {
+                    print("TTTTT:  111");
+                    self.conditionLock.lock()
+                    print("TTTTT:  112");
+                    if(self.readingShouldWait) {
+                        print("TTTTT:  113");
+                        self.synchronizedEncodingDebugPrint("Disable reading")
+                        self.conditionLock.wait()
+                        self.synchronizedEncodingDebugPrint("Enable reading")
+                    }
+                    print("TTTTT: 114");
+                    self.conditionLock.unlock()
+                    print("TTTTT:  115");
+                    
+//                    if(movieOutput.assetWriterVideoInput.isReadyForMoreMediaData) {
+//                        self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+//                    }
+                    
+                    if (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+                        if let readerAudioTrackOutput = readerAudioTrackOutput {
+                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+                        }
+                    }
+                }
+                else {
+//                    self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
+                    if let readerAudioTrackOutput = readerAudioTrackOutput,
+                        self.audioEncodingTarget?.readyForNextAudioBuffer() ?? true {
+                        self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+                    }
+                }
+                print("TTTTT:  2");
+            }
+            
             while(assetReader.status == .reading) {
                 if(thread.isCancelled) { break }
                 
@@ -315,11 +352,11 @@ public class MovieInput: ImageSource {
                         self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
                     }
                     
-                    if (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
-                        if let readerAudioTrackOutput = readerAudioTrackOutput {
-                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
-                        }
-                    }
+//                    if (movieOutput.assetWriterAudioInput?.isReadyForMoreMediaData ?? false) {
+//                        if let readerAudioTrackOutput = readerAudioTrackOutput {
+//                            self.readNextAudioSample(with: assetReader, from: readerAudioTrackOutput)
+//                        }
+//                    }
                 }
                 else {
                     self.readNextVideoFrame(with: assetReader, from: readerVideoTrackOutput!)
@@ -330,9 +367,12 @@ public class MovieInput: ImageSource {
                 }
                 print("TTTTT:  1");
             }
+            
             assetReader.cancelReading()
             currentIndex += 1
         }
+        
+        
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
         // the current thread from being cancelled in between the below if statement and creating the new thread.
@@ -453,7 +493,6 @@ public class MovieInput: ImageSource {
                 } else {
                     movieOutput.movieProcessingContext.runOperationAsynchronously {
                         movieOutput.audioEncodingIsFinished = true
-                        movieOutput.assetWriterAudioInput?.markAsFinished()
                     }
                 }
             }

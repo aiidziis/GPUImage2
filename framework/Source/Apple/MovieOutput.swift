@@ -240,7 +240,7 @@ public class MovieOutput: ImageConsumer, AudioEncodingTarget {
                 
                 self.synchronizedEncodingDebugPrint("Process frame output")
                 
-                try NSObject.ưwhi {
+                try NSObject.catchException {
                     if (!self.assetWriterPixelBufferInput.append(self.pixelBuffer!, withPresentationTime:frameTime)) {
                         print("WARNING: Trouble appending pixel buffer at time: \(frameTime) \(String(describing: self.assetWriter.error))")
                     }  else {
