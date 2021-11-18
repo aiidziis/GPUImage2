@@ -149,11 +149,9 @@ public class MovieInput: ImageSource {
         
         self.currentThread = Thread(target: self, selector: #selector(beginReading), object: nil)
         self.currentThread?.start()
-        print("start: -------------- \(String(describing: currentThread))")
     }
     
     public func cancel() {
-        print("cancel: -------------- \(String(describing: currentThread))")
         self.currentThread?.cancel()
         self.currentThread = nil
     }
@@ -212,7 +210,6 @@ public class MovieInput: ImageSource {
                     assetReader.add(readerAudioTrackOutput)
                 }
                 arrReaders.append(assetReader)
-                
                 if let requestedStartTime = self.requestedStartTime {
                     let maxDuration = asset.duration.seconds + indexTimeSeconds
                     if requestedStartTime.seconds > indexTimeSeconds && requestedStartTime.seconds < maxDuration {
@@ -229,7 +226,6 @@ public class MovieInput: ImageSource {
             self.requestedStartTime = nil
             self.currentItemTime = nil
             self.actualStartTime = nil
-//            self.currentTime = kCMTimeZero
             
             return arrReaders
         } catch {
@@ -254,17 +250,19 @@ public class MovieInput: ImageSource {
             thread.qualityOfService = .default
         }
         
+        requestStartIndex = 0
         guard let assetReaders = self.createReader() else {
             return // A return statement in this frame will end thread execution.
         }
         
         currentIndex = 0
         while currentIndex < assetReaders.count {
-            print("TTTTT: current index \(currentIndex)")
+            if(thread.isCancelled) { break }
             if currentIndex < requestStartIndex {
                 currentIndex += 1
                 continue
             }
+            print("TTTTT: current index \(currentIndex) requestStartIndex: \(requestStartIndex) startTime: \(String(describing: startTime?.seconds)) date: \(Date())")
             actualStartTime = nil
             
             let assetReader = assetReaders[currentIndex]
@@ -324,9 +322,11 @@ public class MovieInput: ImageSource {
                     }
                 }
             }
-            
+            self.startTime = nil
             assetReader.cancelReading()
-            currentIndex += 1
+            if !isPause {
+                currentIndex += 1
+            }
         }
         
         // Since only the main thread will cancel and create threads jump onto it to prevent
@@ -373,7 +373,7 @@ public class MovieInput: ImageSource {
         
         self.currentItemTime = currentSampleTime
         
-        print("TTTTT:  \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
+//        print("TTTTT:  \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
         
         if let startTime = self.startTime {
             // Make sure our samples start at kCMTimeZero if the video was started midway.
@@ -405,12 +405,6 @@ public class MovieInput: ImageSource {
                 return
             }
         }
-        
-//        print("Return current: \(currentTime?.seconds) duration: \(self.duration)")
-//        if let current = self.currentTime, current.seconds > (self.duration - 0.04) {
-//            self.progress?(1)
-//            return
-//        }
         
         sharedImageProcessingContext.runOperationSynchronously{
             self.process(movieFrame:sampleBuffer)
