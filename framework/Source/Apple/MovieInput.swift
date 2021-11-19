@@ -7,9 +7,10 @@ public protocol MovieInputDelegate: class {
 public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
-    public var currentTime: CMTime? {
-        return getCurrentTime()
-    }
+    public var currentTime: CMTime = kCMTimeZero
+//    {
+//        return getCurrentTime()
+//    }
     
     public weak var delegate: MovieInputDelegate?
     
@@ -38,7 +39,7 @@ public class MovieInput: ImageSource {
     var actualStartTime:DispatchTime?
     // Last sample time that played.
     private var currentItemTime: CMTime?
-//    private var timeItemPlayed: CMTime?
+    private var secondDurationPlayed = kCMTimeZero
     
     public var loop:Bool
     
@@ -292,6 +293,11 @@ public class MovieInput: ImageSource {
                 }
             }
             
+            secondDurationPlayed = kCMTimeZero
+            for i in 0..<currentIndex {
+                secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
+            }
+            
             while(assetReader.status == .reading) {
                 if(thread.isCancelled) { break }
                 
@@ -372,8 +378,8 @@ public class MovieInput: ImageSource {
         var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
         
         self.currentItemTime = currentSampleTime
-        
-//        print("TTTTT:  \(self.currentTime?.seconds) self.currentItemTime: \(self.currentItemTime?.seconds)")
+        currentTime = CMTimeAdd(secondDurationPlayed, currentSampleTime)
+//        print("TTTTT:  \(self.currentTime.seconds) self.secondDurationPlayed: \(self.secondDurationPlayed.seconds)")
         
         if let startTime = self.startTime {
             // Make sure our samples start at kCMTimeZero if the video was started midway.
@@ -410,11 +416,11 @@ public class MovieInput: ImageSource {
             self.process(movieFrame:sampleBuffer)
             CMSampleBufferInvalidate(sampleBuffer)
         }
-        if let seekTime = self.seekTime, let current = self.currentTime, current > seekTime {
+        if let seekTime = self.seekTime, currentTime > seekTime {
             self.seekTime = nil
             pause()
         } else {
-            self.progress?(currentTime!.seconds/duration.seconds)
+            self.progress?(currentTime.seconds/duration.seconds)
         }
     }
     
