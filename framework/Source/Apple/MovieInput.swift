@@ -8,10 +8,7 @@ public class MovieInput: ImageSource {
     public let targets = TargetContainer()
     public var runBenchmark = false
     public var currentTime: CMTime = kCMTimeZero
-//    {
-//        return getCurrentTime()
-//    }
-    
+
     public weak var delegate: MovieInputDelegate?
     
     public var audioEncodingTarget:AudioEncodingTarget? {
@@ -160,7 +157,7 @@ public class MovieInput: ImageSource {
     public func pause() {
         self.isPause = true
         self.cancel()
-        self.requestedStartTime = self.getCurrentTime()
+        self.requestedStartTime = currentTime
     }
     
     public func getCurrentTime() -> CMTime? {
@@ -185,11 +182,14 @@ public class MovieInput: ImageSource {
     func createReader() -> [AVAssetReader]?
     {
         do {
+            requestStartIndex = 0
             let outputSettings:[String:AnyObject] =
                 [(kCVPixelBufferPixelFormatTypeKey as String):NSNumber(value:Int32(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange))]
             var arrReaders: [AVAssetReader] = [];
             var indexTimeSeconds: Double = 0
             for i in 0..<assets.count {
+                if Thread.current.isCancelled { return nil }
+                
                 let asset = assets[i]
                 let assetReader = try AVAssetReader.init(asset: asset)
                 
@@ -224,6 +224,8 @@ public class MovieInput: ImageSource {
                 }
             }
             
+            if Thread.current.isCancelled { return nil }
+            
             self.requestedStartTime = nil
             self.currentItemTime = nil
             self.actualStartTime = nil
@@ -251,7 +253,6 @@ public class MovieInput: ImageSource {
             thread.qualityOfService = .default
         }
         
-        requestStartIndex = 0
         guard let assetReaders = self.createReader() else {
             return // A return statement in this frame will end thread execution.
         }
@@ -348,6 +349,7 @@ public class MovieInput: ImageSource {
                     print("completion: \(self.currentIndex) count: \(self.assets.count)")
                     self.delegate?.didFinishMovie()
                     self.completion?()
+                    self.currentTime = kCMTimeZero
                 }
                 
                 self.synchronizedEncodingDebugPrint("MovieInput finished reading")
