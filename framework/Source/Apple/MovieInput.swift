@@ -1,5 +1,17 @@
 import AVFoundation
 
+public struct MovieModel {
+    let url: URL
+    let startTime: Double
+    let duration: Double
+    
+    public init(url: URL, startTime: Double, duration: Double) {
+        self.url = url
+        self.startTime = startTime
+        self.duration = duration
+    }
+}
+
 public protocol MovieInputDelegate: class {
     func didFinishMovie()
 }
@@ -80,6 +92,8 @@ public class MovieInput: ImageSource {
     private var currentNeedAddedTime: Double = 0
     private var requestStartIndex: Int = 0
     
+    private var movies: [MovieModel]?
+    
     private var currentIndex = 0 {
         didSet {
             currentNeedAddedTime = 0
@@ -111,10 +125,19 @@ public class MovieInput: ImageSource {
         try self.init(assets:inputAssets, videoComposition: nil, playAtActualSpeed:playAtActualSpeed, loop:loop, audioSettings:audioSettings)
     }
     
+    public convenience init(movies: [MovieModel], playAtActualSpeed:Bool = false, loop:Bool = false, audioSettings:[String:Any]? = nil) throws {
+        let inputOptions = [AVURLAssetPreferPreciseDurationAndTimingKey:NSNumber(value:true)]
+        let inputAssets = movies.map { item in
+            return AVURLAsset(url:item.url, options:inputOptions)
+        }
+        try self.init(assets:inputAssets, videoComposition: nil, playAtActualSpeed:playAtActualSpeed, loop:loop, audioSettings:audioSettings)
+        self.movies = movies
+    }
+    
     deinit {
         self.movieFramebuffer?.unlock()
         self.cancel()
-        
+        self.movies = nil
         self.videoInputStatusObserver?.invalidate()
         self.audioInputStatusObserver?.invalidate()
     }
@@ -210,6 +233,12 @@ public class MovieInput: ImageSource {
                     readerAudioTrackOutput.alwaysCopiesSampleData = false
                     assetReader.add(readerAudioTrackOutput)
                 }
+                
+                if let movies = movies {
+                    let time = CMTime(seconds: movies[i].startTime, preferredTimescale: asset.duration.timescale)
+                    assetReader.timeRange = CMTimeRange(start: time, duration: kCMTimePositiveInfinity)
+                }
+                
                 arrReaders.append(assetReader)
                 if let requestedStartTime = self.requestedStartTime {
                     let maxDuration = asset.duration.seconds + indexTimeSeconds
@@ -296,7 +325,17 @@ public class MovieInput: ImageSource {
             
             secondDurationPlayed = kCMTimeZero
             for i in 0..<currentIndex {
-                secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
+                if let movies = movies {
+                    let cmTime = CMTime(seconds: movies[i].duration, preferredTimescale: assets[i].duration.timescale)
+                    secondDurationPlayed = CMTimeAdd(secondDurationPlayed, cmTime)
+                } else {
+                    secondDurationPlayed = CMTimeAdd(secondDurationPlayed, self.assets[i].duration)
+                }
+            }
+            
+            if let movies = movies {
+                let time = max(movies[currentIndex].startTime, startTime?.seconds ?? 0)
+                startTime = CMTime(seconds: time, preferredTimescale: assets[currentIndex].duration.timescale)
             }
             
             while(assetReader.status == .reading) {
@@ -372,22 +411,26 @@ public class MovieInput: ImageSource {
             return
         }
         
-        
         self.synchronizedEncodingDebugPrint("Process frame input")
         
+        let videoDuration = movies?.map({ $0.duration }).reduce(0, +)
         var currentSampleTime = CMSampleBufferGetOutputPresentationTimeStamp(sampleBuffer)
-        let durationSecond = assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
+        let durationSecond = videoDuration != nil ? videoDuration! : assets.map{ $0.duration.seconds }.reduce(0, +) // Only used for the progress block so its acuracy is not critical
         var duration = CMTime(seconds: durationSecond, preferredTimescale: assets.first?.duration.timescale ?? 30)
+        
+//        print("TTTTT:  \(self.currentTime.seconds) self.secondDurationPlayed: \(self.secondDurationPlayed.seconds)")
+        
+        if var startTime = self.startTime {
+            // Make sure our samples start at kCMTimeZero if the video was started midway.
+            currentSampleTime = CMTimeSubtract(currentSampleTime, startTime)
+            if let movieTime = movies?[currentIndex].startTime {
+                startTime = CMTimeSubtract(startTime, CMTime(seconds: movieTime, preferredTimescale: startTime.timescale))
+            }
+            duration = CMTimeSubtract(duration, startTime)
+        }
         
         self.currentItemTime = currentSampleTime
         currentTime = CMTimeAdd(secondDurationPlayed, currentSampleTime)
-//        print("TTTTT:  \(self.currentTime.seconds) self.secondDurationPlayed: \(self.secondDurationPlayed.seconds)")
-        
-        if let startTime = self.startTime {
-            // Make sure our samples start at kCMTimeZero if the video was started midway.
-            currentSampleTime = CMTimeSubtract(currentSampleTime, startTime)
-            duration = CMTimeSubtract(duration, startTime)
-        }
         
         if (self.playAtActualSpeed) {
             let currentSampleTimeNanoseconds = Int64(currentSampleTime.seconds * 1_000_000_000)
@@ -423,6 +466,12 @@ public class MovieInput: ImageSource {
             pause()
         } else {
             self.progress?(currentTime.seconds/duration.seconds)
+        }
+//        print("currentTime.seconds: \(currentTime.seconds) \tprogress:\(currentTime.seconds/duration.seconds)\ncurrentSampleTime.seconds: \(currentSampleTime.seconds)")
+        if let movies = movies, currentIndex < movies.count {
+            if currentSampleTime.seconds >= movies[currentIndex].duration {
+                assetReader.cancelReading()
+            }
         }
     }
     
