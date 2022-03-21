@@ -117,7 +117,7 @@ public class ShaderProgram {
     
     public func setValue(_ value:GLfloat, forUniform:String) {
         guard let uniformAddress = uniformIndex(forUniform) else {
-            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
+//            debugPrint("Warning: Tried to set a uniform (\(forUniform)) that was missing or optimized out by the compiler")
             return
         }
         if (currentUniformFloatValues[forUniform] != value) {
