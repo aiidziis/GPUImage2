@@ -5,6 +5,10 @@ public struct MovieModel {
     let startTime: Double
     let duration: Double
     
+    var allTime: Double {
+        return startTime + duration
+    }
+    
     public init(url: URL, startTime: Double, duration: Double) {
         self.url = url
         self.startTime = startTime
@@ -497,8 +501,12 @@ public class MovieInput: ImageSource {
             self.progress?(currentTime.seconds/duration.seconds)
         }
         if let movies = movies, currentIndex < movies.count {
-            if currentSampleTime.seconds >= movies[currentIndex].duration {
-                pause()
+            if let itemTime = self.currentItemTime?.seconds, itemTime > movies[currentIndex].allTime {
+                assetReader.cancelReading()
+                if let specker = self.audioEncodingTarget as? SpeakerOutput, specker.isPlaying {
+                    specker.cancel()
+                    specker.start()
+                }
             }
         }
     }
