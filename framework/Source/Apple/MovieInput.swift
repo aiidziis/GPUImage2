@@ -10,9 +10,9 @@ public struct MovieModel {
     }
     
     public init(url: URL, startTime: Double, duration: Double) {
-        self.url = url
-        self.startTime = startTime
-        self.duration = duration
+        self.url            = url
+        self.startTime      = startTime
+        self.duration       = duration
     }
 }
 
@@ -92,6 +92,7 @@ public class MovieInput: ImageSource {
     var isPause = false
     var seekTime: CMTime?
     var duration: Double = 0.0
+    var pauseCompletion: (() -> Void)?
     
     private var currentNeedAddedTime: Double = 0
     private var requestStartIndex: Int = 0
@@ -170,7 +171,7 @@ public class MovieInput: ImageSource {
     }
     
     public func seek(totime: Double) {
-        let time = CMTime(seconds: totime, preferredTimescale: 1000)
+        let time = CMTime(seconds: totime, preferredTimescale: 600)
         self.seekTime = time
         self.requestedStartTime = time
         self.start()
@@ -183,10 +184,10 @@ public class MovieInput: ImageSource {
             // If the current thread is running and has not been cancelled, bail.
             return
         }
+        
         self.isPause = false
         // Cancel the thread just to be safe in the event we somehow get here with the thread still running.
         self.currentThread?.cancel()
-        
         self.currentThread = Thread(target: self, selector: #selector(beginReading), object: nil)
         self.currentThread?.start()
     }
@@ -196,7 +197,8 @@ public class MovieInput: ImageSource {
         self.currentThread = nil
     }
     
-    public func pause() {
+    public func pause(completed: (() -> Void)? = nil) {
+        pauseCompletion = completed
         self.isPause = true
         self.cancel()
         self.requestedStartTime = currentTime
@@ -426,6 +428,8 @@ public class MovieInput: ImageSource {
                 self.synchronizedEncodingDebugPrint("MovieInput finished reading")
                 self.synchronizedEncodingDebugPrint("MovieInput total frames sent: \(self.totalFramesSent)")
             }
+            self.pauseCompletion?()
+            self.pauseCompletion = nil
         }
     }
     
