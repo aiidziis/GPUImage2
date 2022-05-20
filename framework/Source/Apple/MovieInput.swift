@@ -62,7 +62,7 @@ public class MovieInput: ImageSource {
     // Can be used to check video encoding progress. Not called from main thread.
     public var progress: ((Double) -> Void)?
         
-    public var transform2D: ((AVAsset) -> Void)?
+    public var transform2D: ((AVAsset, Int) -> Void)?
     
     public var synchronizedMovieOutput:MovieOutput? {
         didSet {
@@ -100,7 +100,7 @@ public class MovieInput: ImageSource {
     private var movies: [MovieModel]?
     private var starts: [Double]?
 
-    private var currentIndex = 0 {
+    public private(set) var currentIndex = 0 {
         didSet {
             currentNeedAddedTime = 0
             for i in 0..<self.currentIndex {
@@ -332,7 +332,7 @@ public class MovieInput: ImageSource {
             actualStartTime = nil
             
             let assetReader = assetReaders[currentIndex]
-            self.transform2D?(assetReader.asset)
+            self.transform2D?(assetReader.asset, currentIndex)
             do {
                 try NSObject.catchException {
                     guard assetReader.startReading() else {
