@@ -62,7 +62,7 @@ extension Size {
 }
 
 public let standardImageVertices:[GLfloat] = [-1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0]
-public let verticallyInvertedImageVertices:[GLfloat] = [-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]
+public let verticallyInvertedImageVertices:[GLfloat] = [1.0, -1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0]
 
 // "position" and "inputTextureCoordinate", "inputTextureCoordinate2" attribute naming follows the convention of the old GPUImage
 public func renderQuadWithShader(_ shader:ShaderProgram, uniformSettings:ShaderUniformSettings? = nil, vertices:[GLfloat]? = nil, vertexBufferObject:GLuint? = nil, inputTextures:[InputTextureProperties], context: OpenGLContext = sharedImageProcessingContext) {
