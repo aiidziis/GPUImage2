@@ -10,6 +10,5 @@
 #define GPUImage_Bridging_Header_h
 
 #import "NSObject+Exception.h"
-#import "TPCircularBuffer.h"
 
 #endif /* GPUImage_Bridging_Header_h */

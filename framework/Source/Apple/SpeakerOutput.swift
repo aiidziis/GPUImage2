@@ -10,6 +10,7 @@
 import Foundation
 import AudioToolbox
 import AVFoundation
+import TPCircularBuffer
 
 public class SpeakerOutput: AudioEncodingTarget {
     
