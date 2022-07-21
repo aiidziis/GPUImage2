@@ -507,10 +507,6 @@ public class MovieInput: ImageSource {
         if let movies = movies, currentIndex < movies.count {
             if let itemTime = self.currentItemTime?.seconds, itemTime > movies[currentIndex].allTime {
                 assetReader.cancelReading()
-                if let specker = self.audioEncodingTarget as? SpeakerOutput, specker.isPlaying {
-                    specker.cancel()
-                    specker.start()
-                }
             }
         }
     }
