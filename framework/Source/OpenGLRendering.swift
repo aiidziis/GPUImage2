@@ -75,7 +75,6 @@ public func renderQuadWithShader(_ shader:ShaderProgram, uniformSettings:ShaderU
     
     context.makeCurrentContext()
     shader.use()
-    uniformSettings?.restoreShaderSettings(shader)
 
     guard let positionAttribute = shader.attributeIndex("position") else { fatalError("A position attribute was missing from the shader program during rendering.") }
 
